@@ -1287,8 +1287,6 @@ start_containers() {
     date_time=`date "+%D %T"`
     if [ "$container_pulled" = false ]; then
       sudo docker pull ghcr.io/xterna/earnapp:latest
-      docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM -v /var/run/docker.sock:/var/run/docker.sock -v $(which docker):/usr/bin/docker -v $PWD:/earnapp docker:18.06.2-dind /bin/sh -c 'apk add --no-cache bash && cd /earnapp && chmod +x /earnapp/restart.sh && while true; do sleep 86400; /earnapp/restart.sh --restartEarnapp; done')
-      execute_docker_command "Earnapp Restart" "dindearnapp$UNIQUE_ID$i" "${docker_parameters[@]}"
     fi
     mkdir -p $PWD/$earnapp_data_folder/data$i
     sudo chmod -R 777 $PWD/$earnapp_data_folder/data$i
@@ -1322,7 +1320,6 @@ start_containers() {
       echo -e "${RED}Earnapp is not enabled. Ignoring Earnapp..${NOCOLOUR}"
     fi
   fi
-
   container_pulled=true
 }
 
