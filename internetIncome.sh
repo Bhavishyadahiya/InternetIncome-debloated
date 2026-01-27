@@ -1268,8 +1268,11 @@ start_containers() {
     fi
   fi
 
-# Starting Earnapp container
+  # Starting Earnapp container
   if [ "$EARNAPP" = true ]; then
+    echo -e "${GREEN}Starting Earnapp container..${NOCOLOUR}"
+    echo -e "${GREEN}Copy the following node url and paste in your earnapp dashboard${NOCOLOUR}"
+    echo -e "${GREEN}You will also find the urls in the file $earnapp_file in the same folder${NOCOLOUR}"
     for loop_count in {1..500}; do
       if [ "$loop_count" -eq 500 ]; then
         echo -e "${RED}Unique UUID cannot be generated for Earnapp. Exiting..${NOCOLOUR}"
@@ -1286,17 +1289,11 @@ start_containers() {
     done
     date_time=`date "+%D %T"`
     if [ "$container_pulled" = false ]; then
-      sudo docker pull ghcr.io/xterna/earnapp:latest
-      docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM -v /var/run/docker.sock:/var/run/docker.sock -v $(which docker):/usr/bin/docker -v $PWD:/earnapp docker:18.06.2-dind /bin/sh -c 'apk add --no-cache bash && cd /earnapp && chmod +x /earnapp/restart.sh && while true; do sleep 86400; /earnapp/restart.sh --restartEarnapp; done')
-      execute_docker_command "Earnapp Restart" "dindearnapp$UNIQUE_ID$i" "${docker_parameters[@]}"
+      sudo docker pull fazalfarhan01/earnapp:lite
     fi
     mkdir -p $PWD/$earnapp_data_folder/data$i
     sudo chmod -R 777 $PWD/$earnapp_data_folder/data$i
-    sequence=$i
-    if [ "$USE_DIRECT_CONNECTION" = true ]; then
-      sequence=$((1 + i))
-    fi
-    if [ -f $earnapp_file ] && uuid=$(sed "${sequence}q;d" $earnapp_file | grep -o 'https[^[:space:]]*'| sed 's/https:\/\/earnapp.com\/r\///g');then
+    if [ -f $earnapp_file ] && uuid=$(sed "${i}q;d" $earnapp_file | grep -o 'https[^[:space:]]*'| sed 's/https:\/\/earnapp.com\/r\///g');then
       if [[ $uuid ]];then
         echo $uuid
       else
@@ -1309,19 +1306,20 @@ start_containers() {
       uuid=sdk-node-$RANDOM_ID
       printf "$date_time https://earnapp.com/r/%s\n" "$uuid" | tee -a $earnapp_file
     fi
-    local EARNAPP_PRIVILEGED
-    if [[ "$USE_EARNAPP_PRIVILEGED" = true ]]; then
-      EARNAPP_PRIVILEGED="--privileged"
+
+    if CONTAINER_ID=$(sudo docker run -d --health-interval=24h --name earnapp$UNIQUE_ID$i $LOGS_PARAM $DNS_VOLUME --restart=always $NETWORK_TUN -v $PWD/$earnapp_data_folder/data$i:/etc/earnapp -e EARNAPP_UUID=$uuid fazalfarhan01/earnapp:lite); then
+      echo "$CONTAINER_ID" | tee -a $containers_file
+      echo "earnapp$UNIQUE_ID$i" | tee -a $container_names_file
+    else
+      echo -e "${RED}Failed to start container for Earnapp. Exiting..${NOCOLOUR}"
+      exit 1
     fi
-    docker_parameters=($EARNAPP_PRIVILEGED $LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM $NETWORK_TUN -v $PWD/$earnapp_data_folder/data$i:/etc/earnapp -e EARNAPP_UUID=$uuid --no-healthcheck ghcr.io/xterna/earnapp:latest)
-    execute_docker_command "Earnapp" "earnapp$UNIQUE_ID$i" "${docker_parameters[@]}"
-    echo -e "${GREEN}Copy the node url and paste in your earnapp dashboard${NOCOLOUR}"
-    echo -e "${GREEN}You will also find the urls in the file $earnapp_file in the same folder${NOCOLOUR}"
   else
     if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
       echo -e "${RED}Earnapp is not enabled. Ignoring Earnapp..${NOCOLOUR}"
     fi
   fi
+
   container_pulled=true
 }
 
