@@ -496,21 +496,6 @@ start_containers() {
       echo -e "${RED}Repocket Email or Api is not configured. Ignoring Repocket..${NOCOLOUR}"
     fi
   fi
-
-  # Starting Wizardgain container
-  # Set WIZARDGAIN_EMAIL in properties.conf. If blank, this container won't be started.
-  if [[ $WIZARDGAIN_EMAIL ]]; then
-    if [ "$container_pulled" = false ]; then
-      sudo docker pull wizardgain/worker:latest
-    fi
-    docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM $NETWORK_TUN -e EMAIL=$WIZARDGAIN_EMAIL wizardgain/worker:latest)
-    execute_docker_command "Wizardgain" "wizardgain$UNIQUE_ID$i" "${docker_parameters[@]}"
-  else
-    if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
-      echo -e "${RED}Wizardgain Email is not configured. Ignoring Wizardgain..${NOCOLOUR}"
-    fi
-  fi
-
   
   # Starting AntGain container
   if [[ $ANTGAIN_API_KEY ]]; then
@@ -747,38 +732,6 @@ start_containers() {
   else
     if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
       echo -e "${RED}Honeygain Pot is not enabled. Ignoring Honeygain Pot..${NOCOLOUR}"
-    fi
-  fi
-
-  # Starting Gaganode container
-  if [[ $GAGANODE_TOKEN ]]; then
-    if [ "$container_pulled" = false ]; then
-      sudo docker pull xterna/gaga-node:latest
-    fi
-    docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM $NETWORK_TUN -e TOKEN=$GAGANODE_TOKEN xterna/gaga-node:latest)
-    execute_docker_command "Gaganode" "gaganode$UNIQUE_ID$i" "${docker_parameters[@]}"
-  else
-    if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
-      echo -e "${RED}Gaganode Token is not configured. Ignoring Gaganode..${NOCOLOUR}"
-    fi
-  fi
-
-  # Starting Titan Network container
-  if [[ $TITAN_HASH ]]; then
-    if [ "$container_pulled" = false ]; then
-      sudo docker pull nezha123/titan-edge:latest
-      mkdir -p $PWD/$titan_data_folder/data$i
-      sudo chmod -R 777 $PWD/$titan_data_folder/data$i
-      titan_volume="-v $PWD/$titan_data_folder/data$i:/root/.titanedge"
-      docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM $NETWORK_TUN $titan_volume nezha123/titan-edge:latest)
-      execute_docker_command "TitanNetwork" "titan$UNIQUE_ID$i" "${docker_parameters[@]}"
-      sleep 5
-      sudo docker run --rm -it $titan_volume nezha123/titan-edge bind --hash=$TITAN_HASH https://api-test1.container1.titannet.io/api/v2/device/binding
-      echo -e "${GREEN}The current script is designed to support only a single device for the Titan Network. Please create a new folder, download the InternetIncome script, and add the appropriate hash for the new device.${NOCOLOUR}"
-    fi
-  else
-    if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
-      echo -e "${RED}Titan Network Hash is not configured. Ignoring Titan Network..${NOCOLOUR}"
     fi
   fi
 
