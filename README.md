@@ -53,7 +53,6 @@ sudo bash internetIncome.sh --start
 - Wizardgain (new!)
 - IPRoyals Pawns
 - PacketStream
-- Peer2Profit
 - Repocket
 - Traffmonetizer
 - BitPing
@@ -64,7 +63,6 @@ sudo bash internetIncome.sh --start
 - Gaganode
 - Titan Network
 - URnetwork
-- Nodepay
 - Wipter
 - Antgain
 
