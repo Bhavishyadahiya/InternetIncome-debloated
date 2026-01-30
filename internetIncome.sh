@@ -35,36 +35,20 @@ earnapp_data_folder="earnappdata"
 networks_file="networks.txt"
 mysterium_file="mysterium.txt"
 mysterium_data_folder="mysterium-data"
-ebesucher_file="ebesucher.txt"
-custom_chrome_file="custom_chrome.txt"
-custom_chrome_data_folder="custom-chrome-data"
-custom_firefox_file="custom_firefox.txt"
-custom_firefox_data_folder="custom-firefox-data"
-adnade_file="adnade.txt"
 uprock_file="uprock.txt"
-firefox_containers_file="firefoxcontainers.txt"
-chrome_containers_file="chromecontainers.txt"
-adnade_containers_file="adnadecontainers.txt"
 bitping_data_folder="bitping-data"
 urnetwork_data_folder="urnetwork-data"
-firefox_data_folder="firefoxdata"
-firefox_profile_data="firefoxprofiledata"
-firefox_profile_zipfile="firefoxprofiledata.zip"
 restart_file="restart.sh"
 generate_device_ids_file="generateDeviceIds.sh"
-chrome_data_folder="chromedata"
-adnade_data_folder="adnadedata"
-chrome_profile_data="chromeprofiledata"
-chrome_profile_zipfile="chromeprofiledata.zip"
 traffmonetizer_data_folder="traffmonetizerdata"
 titan_data_folder="titan-data"
 proxyrack_file="proxyrack.txt"
 cloudflare_file="cloudflared"
 dns_resolver_file="resolv.conf"
-required_files=($banner_file $properties_file $firefox_profile_zipfile $restart_file $generate_device_ids_file)
-files_to_be_removed=($dns_resolver_file $cloudflare_file $container_names_file $subnets_file $networks_file $mysterium_file $ebesucher_file $adnade_file $firefox_containers_file $chrome_containers_file $adnade_containers_file $custom_chrome_file $custom_firefox_file $uprock_file)
-folders_to_be_removed=($firefox_data_folder $firefox_profile_data $adnade_data_folder $chrome_data_folder $chrome_profile_data $earnapp_data_folder $dns_resolver_file)
-back_up_folders=($titan_data_folder $bitping_data_folder $urnetwork_data_folder $traffmonetizer_data_folder $mysterium_data_folder $custom_chrome_data_folder $custom_firefox_data_folder)
+required_files=($banner_file $properties_file $restart_file $generate_device_ids_file)
+files_to_be_removed=($dns_resolver_file $cloudflare_file $container_names_file $subnets_file $networks_file $mysterium_file $uprock_file)
+folders_to_be_removed=($earnapp_data_folder $dns_resolver_file)
+back_up_folders=($titan_data_folder $bitping_data_folder $urnetwork_data_folder $traffmonetizer_data_folder $mysterium_data_folder)
 back_up_files=($proxyrack_file $earnapp_file)
 restricted_ports=(1 7 9 11 13 15 17 19 20 21 22 23 25 37 42 43 53 69 77 79 87 95 101 102 103 104 109 110 111 113 115 117 119 123 135 137 139 143 161 179 389 427 465 512 513 514 515 526 530 531 532 540 548 554 556 563 587 601 636 993 995 1719 1720 1723 2049 3659 4045 5060 5061 6000 6566 6665 6666 6667 6668 6669 6697 10080)
 container_pulled=false
@@ -75,11 +59,7 @@ WATCH_TOWER_NAME="internetincomewatchtower"
 
 # Mysterium and ebesucher first port
 mysterium_first_port=2000
-ebesucher_first_port=3000
-adnade_first_port=4000
 uprock_first_port=6100
-custom_firefox_first_port=5000
-custom_chrome_first_port=7000
 
 # Initial Octet for multi IP
 first_octet=192
@@ -296,34 +276,6 @@ start_containers() {
       mysterium_port="-p $mysterium_first_port:4449 "
     fi
 
-    if [[ $EBESUCHER_USERNAME ]]; then
-      ebesucher_first_port=$(check_open_ports $ebesucher_first_port)
-      if ! expr "$ebesucher_first_port" : '[[:digit:]]*$' >/dev/null; then
-         echo -e "${RED}Problem assigning port $ebesucher_first_port ..${NOCOLOUR}"
-         echo -e "${RED}Failed to start Ebesucher. Resolve or disable Ebesucher to continue. Exiting..${NOCOLOUR}"
-         exit 1
-      fi
-      if [ "$EBESUCHER_USE_CHROME" = true ]; then
-          ebesucher_port="-p $ebesucher_first_port:3000 "
-      else
-          ebesucher_port="-p $ebesucher_first_port:5800 "
-      fi
-    fi
-
-    if [[ $ADNADE_USERNAME ]]; then
-      adnade_first_port=$(check_open_ports $adnade_first_port)
-      if ! expr "$adnade_first_port" : '[[:digit:]]*$' >/dev/null; then
-         echo -e "${RED}Problem assigning port $adnade_first_port ..${NOCOLOUR}"
-         echo -e "${RED}Failed to start Adnade. Resolve or disable Adnade to continue. Exiting..${NOCOLOUR}"
-         exit 1
-      fi
-      if [ "$ADNADE_USE_CHROME" = true ]; then
-          adnade_port="-p $adnade_first_port:3500 "
-      else
-          adnade_port="-p $adnade_first_port:5900 "
-      fi
-    fi
-
     if [ "$UPROCK" = true ]; then
       uprock_first_port=$(check_open_ports $uprock_first_port)
       if ! expr "$uprock_first_port" : '[[:digit:]]*$' >/dev/null; then
@@ -334,28 +286,7 @@ start_containers() {
       uprock_port="-p $uprock_first_port:5111 "
     fi
 
-
-    if [ "$CUSTOM_FIREFOX" = true ];then
-      custom_firefox_first_port=$(check_open_ports $custom_firefox_first_port)
-      if ! expr "$custom_firefox_first_port" : '[[:digit:]]*$' >/dev/null; then
-         echo -e "${RED}Problem assigning port $custom_firefox_first_port ..${NOCOLOUR}"
-         echo -e "${RED}Failed to start Custom Firefox. Resolve or disable Custom Firefox to continue. Exiting..${NOCOLOUR}"
-         exit 1
-      fi
-      custom_firefox_port="-p $custom_firefox_first_port:5911 "
-    fi
-
-    if [ "$CUSTOM_CHROME" = true ];then
-      custom_chrome_first_port=$(check_open_ports $custom_chrome_first_port)
-      if ! expr "$custom_chrome_first_port" : '[[:digit:]]*$' >/dev/null; then
-         echo -e "${RED}Problem assigning port $custom_chrome_first_port ..${NOCOLOUR}"
-         echo -e "${RED}Failed to start Custom Chrome. Resolve or disable Custom Chrome to continue. Exiting..${NOCOLOUR}"
-         exit 1
-      fi
-      custom_chrome_port="-p $custom_chrome_first_port:3200 "
-    fi
-
-    combined_ports=$mysterium_port$ebesucher_port$adnade_port$custom_firefox_port$custom_chrome_port$uprock_port
+    combined_ports=$mysterium_port$uprock_port
 
     if [ "$vpn_enabled" = true ];then
       # Starting vpn containers
@@ -533,321 +464,6 @@ start_containers() {
     fi
   fi
 
-
-  # Starting Custom Firefox container
-  if [[ "$CUSTOM_FIREFOX" = true  ]]; then
-    if [ "$container_pulled" = false ]; then
-      sudo docker pull jlesage/firefox:latest
-    fi
-
-    if [[ ! $proxy ]] || [ "$vpn_enabled" = false ]; then
-      custom_firefox_first_port=$(check_open_ports $custom_firefox_first_port)
-      if ! expr "$custom_firefox_first_port" : '[[:digit:]]*$' >/dev/null; then
-         echo -e "${RED}Problem assigning port $custom_firefox_first_port ..${NOCOLOUR}"
-         echo -e "${RED}Failed to start Custom Firefox. Resolve or disable Custom Firefox to continue. Exiting..${NOCOLOUR}"
-         exit 1
-      fi
-      cf_port="-p $local_IP_address:$custom_firefox_first_port:5911"
-    fi
-
-    # Setting random window height and width for firefox
-    if [ "$CUSTOM_FIREFOX_USE_RANDOM_DISPLAY" = true ]; then
-      MIN_WIDTH=1280
-      MIN_HEIGHT=1024
-      WINDOW_WIDTH=$((RANDOM % (1920 - MIN_WIDTH + 1) + MIN_WIDTH))
-      WINDOW_HEIGHT=$((RANDOM % (1080 - MIN_HEIGHT + 1) + MIN_HEIGHT))
-      CUSTOM_FIREFOX_DISPLAY_PARAMETERS="-e DISPLAY_WIDTH=$WINDOW_WIDTH  -e DISPLAY_HEIGHT=$WINDOW_HEIGHT"
-    fi
-
-    mkdir -p $PWD/$custom_firefox_data_folder/data$i
-    sudo chmod -R 777 $PWD/$custom_firefox_data_folder/data$i
-    docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM $NETWORK_TUN -e KEEP_APP_RUNNING=1 $CUSTOM_FIREFOX_DISPLAY_PARAMETERS -e VNC_LISTENING_PORT=-1 -e WEB_LISTENING_PORT=5911 -e VNC_PASSWORD="internetincome" $cf_port -v $PWD/$custom_firefox_data_folder/data$i:/config:rw jlesage/firefox:latest)
-    execute_docker_command "Custom Firefox" "customfirefox$UNIQUE_ID$i" "${docker_parameters[@]}"
-    echo -e "${GREEN}Copy the following node url and paste in your browser if required..${NOCOLOUR}"
-    echo -e "${GREEN}You will also find the urls in the file $custom_firefox_file in the same folder${NOCOLOUR}"
-    echo "http://$localhost_address:$custom_firefox_first_port" |tee -a $custom_firefox_file
-    custom_firefox_first_port=`expr $custom_firefox_first_port + 1`
-  else
-    if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
-      echo -e "${RED}Custom firefox is not configured. Ignoring Custom Firefox..${NOCOLOUR}"
-    fi
-  fi
-
-  # Starting Custom Chrome container
-  if [[ "$CUSTOM_CHROME" = true ]]; then
-    if [ "$container_pulled" = false ]; then
-      sudo docker pull lscr.io/linuxserver/chromium:latest
-    fi
-
-    if [[ ! $proxy ]] || [ "$vpn_enabled" = false ]; then
-      custom_chrome_first_port=$(check_open_ports $custom_chrome_first_port)
-      if ! expr "$custom_chrome_first_port" : '[[:digit:]]*$' >/dev/null; then
-         echo -e "${RED}Problem assigning port $custom_chrome_first_port ..${NOCOLOUR}"
-         echo -e "${RED}Failed to start Custom Chrome. Resolve or disable Custom Chrome to continue. Exiting..${NOCOLOUR}"
-         exit 1
-      fi
-      cc_port="-p $local_IP_address:$custom_chrome_first_port:3200 "
-    fi
-
-    mkdir -p $PWD/$custom_chrome_data_folder/data$i
-    sudo chown -R 911:911 $PWD/$custom_chrome_data_folder/data$i
-    docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM $NETWORK_TUN --security-opt seccomp=unconfined -e TZ=Etc/UTC   -e CUSTOM_HTTPS_PORT=3201 -e CUSTOM_PORT=3200 -e CUSTOM_USER="internetincome" -e PASSWORD="internetincome" --shm-size="1gb" $cc_port -v $PWD/$custom_chrome_data_folder/data$i:/config lscr.io/linuxserver/chromium:latest)
-    execute_docker_command "Custom Chrome" "customchrome$UNIQUE_ID$i" "${docker_parameters[@]}"
-    echo -e "${GREEN}Copy the following node url and paste in your browser if required..${NOCOLOUR}"
-    echo -e "${GREEN}You will also find the urls in the file $custom_chrome_file in the same folder${NOCOLOUR}"
-    echo "http://$localhost_address:$custom_chrome_first_port" |tee -a $custom_chrome_file
-    custom_chrome_first_port=`expr $custom_chrome_first_port + 1`
-  else
-    if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
-      echo -e "${RED}Custom chrome is not configured. Ignoring Custom Chrome..${NOCOLOUR}"
-    fi
-  fi
-
-  # Starting Ebesucher Firefox container
-  if [[ $EBESUCHER_USERNAME && "$EBESUCHER_USE_CHROME" != true  ]]; then
-    if [ "$docker_in_docker_detected" = true ]; then
-      echo -e "${RED}Adnade and Ebesucher are not supported now in Docker-in-Docker. Kindly use custom chrome or custom firefox and login manually. Exiting..${NOCOLOUR}";
-      exit 1
-    fi
-    if [ "$container_pulled" = false ]; then
-      sudo docker pull jlesage/firefox:latest
-
-      # Exit, if firefox profile zip file is missing
-      if [ ! -f "$PWD/$firefox_profile_zipfile" ];then
-        echo -e "${RED}Firefox profile file does not exist. Exiting..${NOCOLOUR}"
-        exit 1
-      fi
-
-      # Unzip the file
-      unzip -o $firefox_profile_zipfile
-
-      # Exit, if firefox profile data is missing
-      if [ ! -d "$PWD/$firefox_profile_data" ];then
-        echo -e "${RED}Firefox Data folder does not exist. Exiting..${NOCOLOUR}"
-        exit 1
-      fi
-
-      docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM -v /var/run/docker.sock:/var/run/docker.sock -v $(which docker):/usr/bin/docker -v $PWD:/firefox docker:18.06.2-dind /bin/sh -c 'apk add --no-cache bash && cd /firefox && chmod +x /firefox/restart.sh && while true; do sleep 3600; /firefox/restart.sh --restartFirefox; done')
-      execute_docker_command "Firefox Restart" "dind$UNIQUE_ID$i" "${docker_parameters[@]}"
-    fi
-
-    # Create folder and copy files
-    mkdir -p $PWD/$firefox_data_folder/data$i
-    sudo chmod -R 777 $PWD/$firefox_profile_data
-    cp -r $PWD/$firefox_profile_data/* $PWD/$firefox_data_folder/data$i/
-    sudo chmod -R 777 $PWD/$firefox_data_folder/data$i
-    if [[ ! $proxy ]] || [ "$vpn_enabled" = false ]; then
-      ebesucher_first_port=$(check_open_ports $ebesucher_first_port)
-      if ! expr "$ebesucher_first_port" : '[[:digit:]]*$' >/dev/null; then
-         echo -e "${RED}Problem assigning port $ebesucher_first_port ..${NOCOLOUR}"
-         echo -e "${RED}Failed to start Ebesucher. Resolve or disable Ebesucher to continue. Exiting..${NOCOLOUR}"
-         exit 1
-      fi
-      eb_port="-p $local_IP_address:$ebesucher_first_port:5800"
-    fi
-
-    # Setting random window height and width for firefox
-    if [ "$EBESUCHER_USE_RANDOM_DISPLAY" = true ]; then
-      MIN_WIDTH=1280
-      MIN_HEIGHT=1024
-      WINDOW_WIDTH=$((RANDOM % (1920 - MIN_WIDTH + 1) + MIN_WIDTH))
-      WINDOW_HEIGHT=$((RANDOM % (1080 - MIN_HEIGHT + 1) + MIN_HEIGHT))
-      DISPLAY_PARAMETERS="-e DISPLAY_WIDTH=$WINDOW_WIDTH  -e DISPLAY_HEIGHT=$WINDOW_HEIGHT"
-    fi
-
-    docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM $NETWORK_TUN -e KEEP_APP_RUNNING=1 -e FF_OPEN_URL="https://www.ebesucher.com/surfbar/$EBESUCHER_USERNAME" $DISPLAY_PARAMETERS -e VNC_LISTENING_PORT=-1 -e VNC_PASSWORD="internetincome" -v $PWD/$firefox_data_folder/data$i:/config:rw $eb_port jlesage/firefox:latest)
-    execute_docker_command "Ebesucher" "ebesucher$UNIQUE_ID$i" "${docker_parameters[@]}"
-    echo -e "${GREEN}Copy the following node url and paste in your browser if required..${NOCOLOUR}"
-    echo -e "${GREEN}You will also find the urls in the file $ebesucher_file in the same folder${NOCOLOUR}"
-    echo "http://$localhost_address:$ebesucher_first_port" |tee -a $ebesucher_file
-    echo "ebesucher$UNIQUE_ID$i" | tee -a $firefox_containers_file
-    ebesucher_first_port=`expr $ebesucher_first_port + 1`
-  else
-    if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
-      echo -e "${RED}Ebesucher username for firefox is not configured. Ignoring Ebesucher..${NOCOLOUR}"
-    fi
-  fi
-
-# Starting Ebesucher Chrome container
-  if [[ $EBESUCHER_USERNAME && "$EBESUCHER_USE_CHROME" = true ]]; then
-    if [ "$docker_in_docker_detected" = true ]; then
-      echo -e "${RED}Adnade and Ebesucher are not supported now in Docker-in-Docker. Kindly use custom chrome or custom firefox and login manually. Exiting..${NOCOLOUR}";
-      exit 1
-    fi
-    if [ "$container_pulled" = false ]; then
-      sudo docker pull lscr.io/linuxserver/chromium:latest
-
-      # Download the chrome profile if not present
-      if [ ! -f "$PWD/$chrome_profile_zipfile" ];then
-        wget https://github.com/engageub/InternetIncome/releases/download/chromeprofiledata/chromeprofiledata.zip
-      fi
-
-      # Exit, if chrome profile zip file is missing
-      if [ ! -f "$PWD/$chrome_profile_zipfile" ];then
-        echo -e "${RED}Chrome profile file does not exist. Exiting..${NOCOLOUR}"
-        exit 1
-      fi
-
-      # Unzip the file
-      unzip -o $chrome_profile_zipfile
-
-      # Exit, if chrome profile data is missing
-      if [ ! -d "$PWD/$chrome_profile_data" ];then
-        echo -e "${RED}Chrome Data folder does not exist. Exiting..${NOCOLOUR}"
-        exit 1
-      fi
-
-      docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM -v /var/run/docker.sock:/var/run/docker.sock -v $(which docker):/usr/bin/docker -v $PWD:/chrome docker:18.06.2-dind /bin/sh -c 'apk add --no-cache bash && cd /chrome && chmod +x /chrome/restart.sh && while true; do sleep 3600; /chrome/restart.sh --restartChrome; done')
-      execute_docker_command "Chrome Restart" "dind$UNIQUE_ID$i" "${docker_parameters[@]}"
-    fi
-
-    # Create folder and copy files
-    mkdir -p $PWD/$chrome_data_folder/data$i
-    sudo chown -R 911:911 $PWD/$chrome_profile_data
-    sudo cp -r $PWD/$chrome_profile_data $PWD/$chrome_data_folder/data$i
-    sudo chown -R 911:911 $PWD/$chrome_data_folder/data$i
-
-    if [[ ! $proxy ]] || [ "$vpn_enabled" = false ]; then
-      ebesucher_first_port=$(check_open_ports $ebesucher_first_port)
-      if ! expr "$ebesucher_first_port" : '[[:digit:]]*$' >/dev/null; then
-         echo -e "${RED}Problem assigning port $ebesucher_first_port ..${NOCOLOUR}"
-         echo -e "${RED}Failed to start Ebesucher. Resolve or disable Ebesucher to continue. Exiting..${NOCOLOUR}"
-         exit 1
-      fi
-      eb_port="-p $local_IP_address:$ebesucher_first_port:3000 "
-    fi
-
-    docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM $NETWORK_TUN --security-opt seccomp=unconfined -e TZ=Etc/UTC -e CHROME_CLI="https://www.ebesucher.com/surfbar/$EBESUCHER_USERNAME" -e CUSTOM_USER="internetincome" -e PASSWORD="internetincome" -v $PWD/$chrome_data_folder/data$i/$chrome_profile_data:/config --shm-size="1gb" $eb_port lscr.io/linuxserver/chromium:latest)
-    execute_docker_command "Ebesucher" "ebesucher$UNIQUE_ID$i" "${docker_parameters[@]}"
-    echo -e "${GREEN}Copy the following node url and paste in your browser if required..${NOCOLOUR}"
-    echo -e "${GREEN}You will also find the urls in the file $ebesucher_file in the same folder${NOCOLOUR}"
-    echo "http://$localhost_address:$ebesucher_first_port" |tee -a $ebesucher_file
-    echo "ebesucher$UNIQUE_ID$i" | tee -a $chrome_containers_file
-    ebesucher_first_port=`expr $ebesucher_first_port + 1`
-  else
-    if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
-      echo -e "${RED}Ebesucher username for chrome is not configured. Ignoring Ebesucher..${NOCOLOUR}"
-    fi
-  fi
-
-  # Starting Adnade Firefox container
-  if [[ $ADNADE_USERNAME && "$ADNADE_USE_CHROME" != true  ]]; then
-    if [ "$docker_in_docker_detected" = true ]; then
-      echo -e "${RED}Adnade and Ebesucher are not supported now in Docker-in-Docker. Kindly use custom chrome or custom firefox and login manually. Exiting..${NOCOLOUR}";
-      exit 1
-    fi
-    if [ "$container_pulled" = false ]; then
-      sudo docker pull jlesage/firefox
-
-      # Exit, if firefox profile zip file is missing
-      if [ ! -f "$PWD/$firefox_profile_zipfile" ];then
-        echo -e "${RED}Firefox profile file does not exist. Exiting..${NOCOLOUR}"
-        exit 1
-      fi
-
-      # Unzip the file
-      unzip -o $firefox_profile_zipfile
-
-      # Exit, if firefox profile data is missing
-      if [ ! -d "$PWD/$firefox_profile_data" ];then
-        echo -e "${RED}Firefox Data folder does not exist. Exiting..${NOCOLOUR}"
-        exit 1
-      fi
-
-      docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM -v /var/run/docker.sock:/var/run/docker.sock -v $(which docker):/usr/bin/docker -v $PWD:/firefox docker:18.06.2-dind /bin/sh -c 'apk add --no-cache bash && cd /firefox && chmod +x /firefox/restart.sh && while true; do sleep 7200; /firefox/restart.sh --restartAdnadeFirefox; done')
-      execute_docker_command "Adnade Firefox Restart" "adnadedind$UNIQUE_ID$i" "${docker_parameters[@]}"
-    fi
-
-    # Create folder and copy files
-    mkdir -p $PWD/$adnade_data_folder/data$i
-    sudo chmod -R 777 $PWD/$firefox_profile_data
-    cp -r $PWD/$firefox_profile_data/* $PWD/$adnade_data_folder/data$i/
-    sudo chmod -R 777 $PWD/$adnade_data_folder/data$i
-    if [[ ! $proxy ]] || [ "$vpn_enabled" = false ]; then
-      adnade_first_port=$(check_open_ports $adnade_first_port)
-      if ! expr "$adnade_first_port" : '[[:digit:]]*$' >/dev/null; then
-         echo -e "${RED}Problem assigning port $adnade_first_port ..${NOCOLOUR}"
-         echo -e "${RED}Failed to start Adnade Firefox. Resolve or disable Adnade to continue. Exiting..${NOCOLOUR}"
-         exit 1
-      fi
-      ad_port="-p $local_IP_address:$adnade_first_port:5900"
-    fi
-
-    docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM $NETWORK_TUN -e FF_CUSTOM_ARGS="--private-window" -e FF_OPEN_URL="https://adnade.net/view.php?user=$ADNADE_USERNAME&multi=4" -e VNC_LISTENING_PORT=-1 -e WEB_LISTENING_PORT=5900 -e VNC_PASSWORD="internetincome" -v $PWD/$adnade_data_folder/data$i:/config:rw $ad_port jlesage/firefox:latest)
-    execute_docker_command "Adnade" "adnade$UNIQUE_ID$i" "${docker_parameters[@]}"
-    echo -e "${GREEN}Copy the following node url and paste in your browser if required..${NOCOLOUR}"
-    echo -e "${GREEN}You will also find the urls in the file $adnade_file in the same folder${NOCOLOUR}"
-    echo "http://$localhost_address:$adnade_first_port" |tee -a $adnade_file
-    echo "adnade$UNIQUE_ID$i" | tee -a $adnade_containers_file
-    adnade_first_port=`expr $adnade_first_port + 1`
-  else
-    if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
-      echo -e "${RED}Adnade username for firefox is not configured. Ignoring Adnade..${NOCOLOUR}"
-    fi
-  fi
-
-  # Starting Adnade Chrome container
-  if [[ $ADNADE_USERNAME && "$ADNADE_USE_CHROME" = true ]]; then
-    if [ "$docker_in_docker_detected" = true ]; then
-      echo -e "${RED}Adnade and Ebesucher are not supported now in Docker-in-Docker. Kindly use custom chrome or custom firefox and login manually. Exiting..${NOCOLOUR}";
-      exit 1
-    fi
-    if [ "$container_pulled" = false ]; then
-      sudo docker pull lscr.io/linuxserver/chromium:latest
-
-      # Download the chrome profile if not present
-      if [ ! -f "$PWD/$chrome_profile_zipfile" ];then
-        wget https://github.com/engageub/InternetIncome/releases/download/chromeprofiledata/chromeprofiledata.zip
-      fi
-
-      # Exit, if chrome profile zip file is missing
-      if [ ! -f "$PWD/$chrome_profile_zipfile" ];then
-        echo -e "${RED}Chrome profile file does not exist. Exiting..${NOCOLOUR}"
-        exit 1
-      fi
-
-      # Unzip the file
-      unzip -o $chrome_profile_zipfile
-
-      # Exit, if chrome profile data is missing
-      if [ ! -d "$PWD/$chrome_profile_data" ];then
-        echo -e "${RED}Chrome Data folder does not exist. Exiting..${NOCOLOUR}"
-        exit 1
-      fi
-
-      docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM -v /var/run/docker.sock:/var/run/docker.sock -v $(which docker):/usr/bin/docker -v $PWD:/chrome docker:18.06.2-dind /bin/sh -c 'apk add --no-cache bash && cd /chrome && chmod +x /chrome/restart.sh && while true; do sleep 7200; /chrome/restart.sh --restartAdnade; done')
-      execute_docker_command "Adnade Restart" "dindAdnade$UNIQUE_ID$i" "${docker_parameters[@]}"
-
-    fi
-
-    # Create folder and copy files
-    mkdir -p $PWD/$adnade_data_folder/data$i
-    sudo chown -R 911:911 $PWD/$chrome_profile_data
-    sudo cp -r $PWD/$chrome_profile_data $PWD/$adnade_data_folder/data$i
-    sudo chown -R 911:911 $PWD/$adnade_data_folder/data$i
-
-    if [[ ! $proxy ]] || [ "$vpn_enabled" = false ]; then
-      adnade_first_port=$(check_open_ports $adnade_first_port)
-      if ! expr "$adnade_first_port" : '[[:digit:]]*$' >/dev/null; then
-         echo -e "${RED}Problem assigning port $adnade_first_port ..${NOCOLOUR}"
-         echo -e "${RED}Failed to start Adnade. Resolve or disable Adnade to continue. Exiting..${NOCOLOUR}"
-         exit 1
-      fi
-      ad_port="-p $local_IP_address:$adnade_first_port:3500 "
-    fi
-
-    docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM $NETWORK_TUN --security-opt seccomp=unconfined -e TZ=Etc/UTC -e CUSTOM_HTTPS_PORT=3501 -e CUSTOM_PORT=3500 -e CHROME_CLI="--incognito https://adnade.net/view.php?user=$ADNADE_USERNAME&multi=4" -e CUSTOM_USER="internetincome" -e PASSWORD="internetincome" -v $PWD/$adnade_data_folder/data$i/$chrome_profile_data:/config --shm-size="1gb" $ad_port lscr.io/linuxserver/chromium:latest)
-    execute_docker_command "Adnade" "adnade$UNIQUE_ID$i" "${docker_parameters[@]}"
-    echo -e "${GREEN}Copy the following node url and paste in your browser if required..${NOCOLOUR}"
-    echo -e "${GREEN}You will also find the urls in the file $adnade_file in the same folder${NOCOLOUR}"
-    echo "http://$localhost_address:$adnade_first_port" |tee -a $adnade_file
-    echo "adnade$UNIQUE_ID$i" | tee -a $adnade_containers_file
-    adnade_first_port=`expr $adnade_first_port + 1`
-  else
-    if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
-      echo -e "${RED}Adnade username for chrome is not configured. Ignoring Adnade..${NOCOLOUR}"
-    fi
-  fi
 
   # Starting BitPing container
   if [[ $BITPING_EMAIL && $BITPING_PASSWORD ]]; then
@@ -1507,7 +1123,7 @@ if [[ "$1" == "--start" ]]; then
     if sudo docker inspect $WATCH_TOWER_NAME >/dev/null 2>&1; then
       echo "InternetIncome Watchtower is already present on the host. One Watchtower container is enough to update all the containers. Not creating another instance to avoid redundant updates and resource usage."
     else
-      docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM $NETWORK_TUN -e WATCHTOWER_CLEANUP=true -v /var/run/docker.sock:/var/run/docker.sock containrrr/watchtower --label-enable --interval 86400)
+      docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM $NETWORK_TUN -e WATCHTOWER_CLEANUP=true -v /var/run/docker.sock:/var/run/docker.sock nickfedor/watchtower:latest-dev --label-enable --interval 86400)
       execute_docker_command "Internet Income Watch Tower" "$WATCH_TOWER_NAME" "${docker_parameters[@]}"
     fi
   fi
