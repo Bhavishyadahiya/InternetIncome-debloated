@@ -66,6 +66,7 @@ sudo bash internetIncome.sh --start
 - URnetwork
 - Nodepay
 - Wipter
+- Antgain
 
 **Browser-Based:**
 - Mysterium
