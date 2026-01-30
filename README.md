@@ -71,7 +71,7 @@ sudo bash internetIncome.sh --start
 - CastarSDK
 - Wipter
 
-**Browser-Based:*
+**Browser-Based:**
 - Mysterium
 - Grass
 - Gradient
