@@ -560,38 +560,6 @@ start_containers() {
     fi
   fi
 
-  # Starting PacketShare container
-  if [[ $PACKETSHARE_EMAIL && $PACKETSHARE_PASSWORD ]]; then
-    if [ "$container_pulled" = false ]; then
-      sudo docker pull packetshare/packetshare:latest
-    fi
-    docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM $NETWORK_TUN packetshare/packetshare:latest -accept-tos -email=$PACKETSHARE_EMAIL -password=$PACKETSHARE_PASSWORD)
-    execute_docker_command "PacketShare" "packetshare$UNIQUE_ID$i" "${docker_parameters[@]}"
-  else
-    if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
-      echo -e "${RED}PacketShare Email or Password is not configured. Ignoring PacketShare..${NOCOLOUR}"
-    fi
-  fi
-
-  # Starting Depin Chrome Extensions container
-  if [[ $GRASS_EMAIL && $GRASS_PASSWORD ]] || [[ $GRADIENT_EMAIL && $GRADIENT_PASSWORD ]]; then
-    if [ "$container_pulled" = false ]; then
-      sudo docker pull carbon2029/dockweb:latest
-    fi
-    if [[ $GRASS_EMAIL && $GRASS_PASSWORD ]]; then
-      grass_env="-e GRASS_USER=$GRASS_EMAIL -e GRASS_PASS=$GRASS_PASSWORD"
-    fi
-    if [[ $GRADIENT_EMAIL && $GRADIENT_PASSWORD ]]; then
-      gradient_env="-e GRADIENT_EMAIL=$GRADIENT_EMAIL -e GRADIENT_PASS=$GRADIENT_PASSWORD"
-    fi
-    docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM $NETWORK_TUN $grass_env $gradient_env carbon2029/dockweb:latest)
-    execute_docker_command "Depin Extensions" "depinext$UNIQUE_ID$i" "${docker_parameters[@]}"
-  else
-    if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
-      echo -e "${RED}Depin Extensions are not configured. Ignoring Depin Extensions..${NOCOLOUR}"
-    fi
-  fi
-
   # Starting Earn Fm container
   if [[ $EARN_FM_API ]]; then
     if [ "$container_pulled" = false ]; then
@@ -602,19 +570,6 @@ start_containers() {
   else
     if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
       echo -e "${RED}EarnFm Api is not configured. Ignoring EarnFm..${NOCOLOUR}"
-    fi
-  fi
-
-  # Starting PacketSDK container
-  if [[ $PACKET_SDK_APP_KEY ]]; then
-    if [ "$container_pulled" = false ]; then
-      sudo docker pull packetsdk/packetsdk:latest
-    fi
-    docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM $NETWORK_TUN packetsdk/packetsdk:latest -appkey=$PACKET_SDK_APP_KEY)
-    execute_docker_command "PacketSDK" "packetsdk$UNIQUE_ID$i" "${docker_parameters[@]}"
-  else
-    if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
-      echo -e "${RED}PacketSDK API is not configured. Ignoring PacketSDK..${NOCOLOUR}"
     fi
   fi
 
@@ -845,19 +800,6 @@ start_containers() {
     fi
   fi
 
-  # Starting CastarSDK container
-  if [[ $CASTAR_SDK_KEY ]]; then
-    if [ "$container_pulled" = false ]; then
-      sudo docker pull ghcr.io/adfly8470/castarsdk/castarsdk@sha256:fc07c70982ae1869181acd81f0b7314b03e0601794d4e7532b7f8435e971eaa8
-    fi
-    docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM $NETWORK_TUN -e KEY=$CASTAR_SDK_KEY ghcr.io/adfly8470/castarsdk/castarsdk@sha256:fc07c70982ae1869181acd81f0b7314b03e0601794d4e7532b7f8435e971eaa8)
-    execute_docker_command "CastarSDK" "castarsdk$UNIQUE_ID$i" "${docker_parameters[@]}"
-  else
-    if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
-      echo -e "${RED}CastarSDK is not configured. Ignoring CastarSDK..${NOCOLOUR}"
-    fi
-  fi
-
   # Starting PacketStream container
   if [[ $PACKETSTREAM_CID ]]; then
     if [ "$container_pulled" = false ]; then
@@ -939,33 +881,57 @@ start_containers() {
   container_pulled=true
 }
 
-# Update and Install Docker
+# Update and Install Docker (Cross-OS compatible)
 if [[ "$1" == "--install" ]]; then
-  sudo apt-get update
-  sudo apt-get -y install docker.io
-  CPU_ARCH=`uname -m`
-  if [ "$CPU_ARCH" == "aarch64" ] || [ "$CPU_ARCH" == "arm64" ]; then
-    sudo docker run --privileged --rm tonistiigi/binfmt --install all
-    sudo apt-get install qemu binfmt-support qemu-user-static
+  echo -e "${GREEN}Installing Docker using official Docker install script...${NOCOLOUR}"
+
+  # Download Docker install script
+  if ! curl -fsSL https://get.docker.com -o get-docker.sh; then
+    echo -e "${RED}Failed to download Docker install script.${NOCOLOUR}"
+    exit 1
   fi
-  # Check if Docker is installed
+
+  # Run installer
+  sh get-docker.sh
+  install_status=$?
+
+  # Cleanup
+  rm -f get-docker.sh
+
+  if [[ $install_status -ne 0 ]]; then
+    echo -e "${RED}Docker installation failed.${NOCOLOUR}"
+    echo -e "Please install Docker manually from https://docs.docker.com/engine/install/"
+    exit 1
+  fi
+
+  # Enable & start Docker (systemd-based systems)
+  if command -v systemctl &> /dev/null; then
+    sudo systemctl enable docker >/dev/null 2>&1
+    sudo systemctl start docker >/dev/null 2>&1
+  fi
+
+  # Add current user to docker group (if exists)
+  if getent group docker >/dev/null 2>&1; then
+    if ! groups "$USER" | grep -qw docker; then
+      sudo usermod -aG docker "$USER"
+      echo -e "${YELLOW}Added $USER to docker group.${NOCOLOUR}"
+      echo -e "${YELLOW}Log out and log back in for this change to take effect.${NOCOLOUR}"
+    fi
+  fi
+
+  # Verify installation
   if command -v docker &> /dev/null; then
-    echo -e "${GREEN}Docker is installed.${NOCOLOUR}"
+    echo -e "${GREEN}Docker installed successfully.${NOCOLOUR}"
     docker --version
   else
-    echo -e "${RED}Docker is not installed. There is a problem installing Docker.${NOCOLOUR}"
-    echo "Please install Docker manually by following https://docs.docker.com/engine/install/"
+    echo -e "${RED}Docker installation completed but docker command not found.${NOCOLOUR}"
+    echo -e "Please re-login or install Docker manually."
+    exit 1
   fi
-  exit 1
+
+  exit 0
 fi
 
-# Check if Docker is installed
-if ! command -v docker &> /dev/null; then
-  echo -e "${RED}Docker is not installed, without which the script cannot start. Exiting..${NOCOLOUR}"
-  echo -e "To install Docker, please run the following command\n"
-  echo -e "${YELLOW}sudo bash internetIncome.sh --install${NOCOLOUR}\n"
-  exit 1
-fi
 
 # Start the containers
 if [[ "$1" == "--start" ]]; then
