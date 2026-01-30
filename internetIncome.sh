@@ -808,19 +808,6 @@ start_containers() {
     fi
   fi
 
-  # Starting Nodepay container
-  if [[ $NP_COOKIE ]]; then
-    if [ "$container_pulled" = false ]; then
-      sudo docker pull kellphy/nodepay:latest
-    fi
-    docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM $NETWORK_TUN -e NP_COOKIE=$NP_COOKIE kellphy/nodepay:latest)
-    execute_docker_command "Nodepay" "nodepay$UNIQUE_ID$i" "${docker_parameters[@]}"
-  else
-    if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
-      echo -e "${RED}Nodepay cookie is not configured. Ignoring Nodepay..${NOCOLOUR}"
-    fi
-  fi
-
   # Starting PacketStream container
   if [[ $PACKETSTREAM_CID ]]; then
     if [ "$container_pulled" = false ]; then
