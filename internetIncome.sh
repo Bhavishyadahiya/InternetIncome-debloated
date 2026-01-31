@@ -665,6 +665,7 @@ start_containers() {
 
 # Starting Honeygain container
   if [[ $HONEYGAIN_EMAIL && $HONEYGAIN_PASSWORD ]]; then
+    echo -e "${GREEN}Starting Honeygain container..${NOCOLOUR}"
     if [[ $NETWORK_TUN ]]; then
       if [ "$CPU_ARCH" == "x86_64" ] || [ "$CPU_ARCH" == "amd64" ]; then
         honeygain_image="honeygain/honeygain:0.6.6"
@@ -674,46 +675,13 @@ start_containers() {
     else
       honeygain_image="honeygain/honeygain:latest"
     fi
+  
     if [ "$container_pulled" = false ]; then
       sudo docker pull $honeygain_image
     fi
-    
-    # ========== HONEYGAIN DEVICE NAME MEMORY CONFIGURATION ==========
-    HONEYGAIN_NAMES_FILE="honeygain_names.txt"
-    HONEYGAIN_NAME_PREFIX=""           # Prefix before random part (e.g., "Docker", "VPS", "")
-    HONEYGAIN_NAME_MIN_LENGTH=3        # Minimum length (3-6)
-    HONEYGAIN_NAME_MAX_LENGTH=6        # Maximum length (3-6)
-    HONEYGAIN_USE_UPPERCASE=true       # Include A-Z
-    HONEYGAIN_USE_LOWERCASE=true       # Include a-z
-    HONEYGAIN_USE_NUMBERS=true         # Include 0-9
-    # ================================================================
-    
-    # Create honeygain_names.txt if it doesn't exist
-    if [ ! -f "$HONEYGAIN_NAMES_FILE" ]; then
-      touch "$HONEYGAIN_NAMES_FILE"
-    fi
-    
-    # Get the device name from the file at line number $i
-    custom_device_name=$(sed "${i}q;d" "$HONEYGAIN_NAMES_FILE")
-    
-    if [ -z "$custom_device_name" ]; then
-      # Generate a new random device name if line doesn't exist
-      min_length="$HONEYGAIN_NAME_MIN_LENGTH"
-      max_length="$HONEYGAIN_NAME_MAX_LENGTH"
-      name_length=$((RANDOM % (max_length - min_length + 1) + min_length))
-      char_set=""
-      if [ "$HONEYGAIN_USE_UPPERCASE" = true ]; then char_set="${char_set}A-Z"; fi
-      if [ "$HONEYGAIN_USE_LOWERCASE" = true ]; then char_set="${char_set}a-z"; fi
-      if [ "$HONEYGAIN_USE_NUMBERS" = true ]; then char_set="${char_set}0-9"; fi
-      if [ -z "$char_set" ]; then char_set="a-zA-Z0-9"; fi
-      random_part=$(cat /dev/urandom | LC_ALL=C tr -dc "$char_set" | dd bs=1 count=$name_length 2>/dev/null)
-      custom_device_name="${HONEYGAIN_NAME_PREFIX}${random_part}"
-      
-      # Save the new device name to the file
-      echo "$custom_device_name" >> "$HONEYGAIN_NAMES_FILE"
-    fi
-    
-    docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM $NETWORK_TUN $honeygain_image -tou-accept -email $HONEYGAIN_EMAIL -pass $HONEYGAIN_PASSWORD -device $custom_device_name)
+  
+    docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM $NETWORK_TUN $honeygain_image -tou-accept -email $HONEYGAIN_EMAIL -pass $HONEYGAIN_PASSWORD -device ${DEVICE_NAME}$i)
+  
     execute_docker_command "Honeygain" "honey$UNIQUE_ID$i" "${docker_parameters[@]}"
   else
     if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
