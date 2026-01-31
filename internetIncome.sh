@@ -203,8 +203,8 @@ execute_docker_command() {
   fi
 
   # Delay between each container start
-  if [[ $DELAY_BETWEEN_CONTAINER =~ ^[0-9]+$ ]]; then
-    sleep $DELAY_BETWEEN_CONTAINER
+  if [[ "$DELAY_BETWEEN_CONTAINER" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+    sleep "$DELAY_BETWEEN_CONTAINER"
   fi
 }
 
