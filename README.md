@@ -53,6 +53,8 @@ sudo bash internetIncome.sh --start
 - Wizardgain (new!)
 - IPRoyals Pawns
 - PacketStream
+- CastarSDK
+- PacketSDK
 - Repocket
 - Traffmonetizer
 - BitPing
@@ -61,13 +63,13 @@ sudo bash internetIncome.sh --start
 - Proxylite
 - EarnFM
 - URnetwork
-- Wipter
 - Antgain
 
 **Browser-Based:**
 - Mysterium
 - Uprock
-
+- Wipter
+  
 ---
 
 ## ⚙️ Basic Configuration
