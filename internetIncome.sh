@@ -44,6 +44,7 @@ traffmonetizer_data_folder="traffmonetizerdata"
 proxyrack_file="proxyrack.txt"
 cloudflare_file="cloudflared"
 dns_resolver_file="resolv.conf"
+ur_proxies_file="ur_proxies.txt"
 required_files=($banner_file $properties_file $restart_file $generate_device_ids_file)
 files_to_be_removed=($dns_resolver_file $cloudflare_file $container_names_file $subnets_file $networks_file $mysterium_file $uprock_file)
 folders_to_be_removed=($earnapp_data_folder $dns_resolver_file)
