@@ -551,7 +551,7 @@ start_containers() {
     if [ "$container_pulled" = false ]; then
       sudo docker pull techroy23/docker-castarsdk
     fi
-    docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM $NETWORK_TUN -e KEY=$CASTAR_SDK_KEY techroy23/docker-castarsdk)
+    docker_parameters=($LOGS_PARAM $DNS_VOLUME $MAX_MEMORY_PARAM $MEMORY_RESERVATION_PARAM $MEMORY_SWAP_PARAM $CPU_PARAM $NETWORK_TUN -e APPKEY=$CASTAR_SDK_KEY techroy23/docker-castarsdk)
     execute_docker_command "CastarSDK" "castarsdk$UNIQUE_ID$i" "${docker_parameters[@]}"
   else
     if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
