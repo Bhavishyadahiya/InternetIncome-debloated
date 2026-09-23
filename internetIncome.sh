@@ -34,41 +34,26 @@ proxyrack_file="proxyrack.txt"
 networks_file="networks.txt"
 mysterium_file="mysterium.txt"
 mysterium_data_folder="mysterium-data"
-ebesucher_file="ebesucher.txt"
-adnade_file="adnade.txt"
-adnade_data_folder="adnadedata"
-adnade_containers_file="adnadecontainers.txt"
-firefox_containers_file="firefoxcontainers.txt"
-chrome_containers_file="chromecontainers.txt"
 bitping_data_folder="bitping-data"
 urnetwork_data_folder="urnetwork-data"
-firefox_data_folder="firefoxdata"
-firefox_profile_data="firefoxprofiledata"
-firefox_profile_zipfile="firefoxprofiledata.zip"
-chrome_data_folder="chromedata"
-chrome_profile_data="chromeprofiledata"
-chrome_profile_zipfile="chromeprofiledata.zip"
 restart_file="restart.sh"
 dns_resolver_file="resolv.conf"
 earn_fm_config_file="earnfm_config.json"
 traffmonetizer_data_folder="traffmonetizerdata"
-network3_data_folder="network3-data"
 titan_data_folder="titan-data"
 ur_proxies_file="ur_proxies.txt"
 ur_data_proxies_file="$urnetwork_data_folder/data/.urnetwork/proxy"
 process_id_file="process.pid"
-required_files=($banner_file $properties_file $firefox_profile_zipfile $restart_file $chrome_profile_zipfile)
-files_to_be_removed=($earn_fm_config_file $dns_resolver_file $container_names_file $networks_file $mysterium_file $ebesucher_file $adnade_file $adnade_containers_file $firefox_containers_file $chrome_containers_file $ur_proxies_file $ur_data_proxies_file $process_id_file)
-folders_to_be_removed=($adnade_data_folder $firefox_data_folder $firefox_profile_data $earnapp_data_folder $chrome_data_folder $chrome_profile_data)
-back_up_folders=($titan_data_folder $network3_data_folder $bitping_data_folder $urnetwork_data_folder $traffmonetizer_data_folder $mysterium_data_folder)
+required_files=($banner_file $properties_file $restart_file)
+files_to_be_removed=($earn_fm_config_file $dns_resolver_file $container_names_file $networks_file $mysterium_file $ur_proxies_file $ur_data_proxies_file $process_id_file)
+folders_to_be_removed=($earnapp_data_folder)
+back_up_folders=($titan_data_folder $bitping_data_folder $urnetwork_data_folder $traffmonetizer_data_folder $mysterium_data_folder)
 back_up_files=($antgain_file $earnapp_file $proxyrack_file)
 container_pulled=false
 docker_in_docker_detected=false
 
-# Mysterium and ebesucher first port
+# Mysterium first port
 mysterium_first_port=2000
-ebesucher_first_port=3000
-adnade_first_port=4000
 
 #Unique Id
 UNIQUE_ID=`cat /dev/urandom | LC_ALL=C tr -dc 'a-f0-9' | dd bs=1 count=32 2>/dev/null`
@@ -270,31 +255,7 @@ start_containers() {
       mysterium_port="-p $mysterium_first_port:4449 "
     fi
 
-    if [[ $EBESUCHER_USERNAME ]]; then
-      ebesucher_first_port=$(check_open_ports $ebesucher_first_port 1)
-      if ! expr "$ebesucher_first_port" : '[[:digit:]]*$' >/dev/null; then
-         echo -e "${RED}Problem assigning port $ebesucher_first_port ..${NOCOLOUR}"
-         echo -e "${RED}Failed to start Ebesucher. Resolve or disable Ebesucher to continue. Exiting..${NOCOLOUR}"
-         exit 1
-      fi
-      if [ "$EBESUCHER_USE_CHROME" = true ]; then
-          ebesucher_port="-p $ebesucher_first_port:3000 "
-      else
-          ebesucher_port="-p $ebesucher_first_port:5800 "
-      fi
-    fi
-
-    if [[ $ADNADE_USERNAME ]]; then
-      adnade_first_port=$(check_open_ports $adnade_first_port 1)
-      if ! expr "$adnade_first_port" : '[[:digit:]]*$' >/dev/null; then
-         echo -e "${RED}Problem assigning port $adnade_first_port ..${NOCOLOUR}"
-         echo -e "${RED}Failed to start Adnade. Resolve or disable Adnade to continue. Exiting..${NOCOLOUR}"
-         exit 1
-      fi
-      adnade_port="-p $adnade_first_port:5900 "
-    fi
-
-    combined_ports=$mysterium_port$ebesucher_port$adnade_port
+    combined_ports=$mysterium_port
     echo -e "${YELLOW}Starting Proxy container..${NOCOLOUR}"
     # Starting tun containers
     if [ "$container_pulled" = false ]; then
@@ -413,200 +374,6 @@ start_containers() {
   else
     if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
       echo -e "${RED}Mysterium Node is not enabled. Ignoring Mysterium..${NOCOLOUR}"
-    fi
-  fi
-
-  # Starting Ebesucher Chrome container
-  if [[ $EBESUCHER_USERNAME && "$EBESUCHER_USE_CHROME" = true ]]; then
-    if [ "$docker_in_docker_detected" = true ]; then
-      echo -e "${RED}Adnade and Ebesucher are not supported now in Docker-in-Docker. Please use custom chrome or custom firefox in test branch and login manually. Exiting..${NOCOLOUR}";
-      exit 1
-    fi
-    if [ "$container_pulled" = false ]; then
-      sudo docker pull lscr.io/linuxserver/chromium:latest
-
-      # Exit, if chrome profile zip file is missing
-      if [ ! -f "$PWD/$chrome_profile_zipfile" ];then
-        echo -e "${RED}Chrome profile file does not exist. Exiting..${NOCOLOUR}"
-        exit 1
-      fi
-
-      # Unzip the file
-      unzip -o $chrome_profile_zipfile
-
-      # Exit, if chrome profile data is missing
-      if [ ! -d "$PWD/$chrome_profile_data" ];then
-        echo -e "${RED}Chrome Data folder does not exist. Exiting..${NOCOLOUR}"
-        exit 1
-      fi
-      check_container_exists dind$UNIQUE_ID$i
-      if CONTAINER_ID=$(sudo docker run -d --name dind$UNIQUE_ID$i $LOGS_PARAM $DNS_VOLUME --mount type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock --mount type=bind,source=$(which docker),target=/usr/bin/docker --mount type=bind,source=$PWD,target=/chrome --network none docker:cli /bin/sh -c 'cd /chrome && chmod +x /chrome/restart.sh && while true; do sleep 3600; /chrome/restart.sh --restartChrome; done'); then
-        echo -e "${GREEN}Container dind$UNIQUE_ID$i started successfully.${NOCOLOUR}"
-      else
-        echo -e "${RED}Failed to start container for ebesucher chrome restart. Exiting..${NOCOLOUR}"
-        exit 1
-      fi
-    fi
-
-    # Create folder and copy files
-    mkdir -p $PWD/$chrome_data_folder/data$i
-    sudo chown -R 911:911 $PWD/$chrome_profile_data
-    sudo cp -r $PWD/$chrome_profile_data $PWD/$chrome_data_folder/data$i
-    sudo chown -R 911:911 $PWD/$chrome_data_folder/data$i
-
-    if [[ ! $proxy ]]; then
-      ebesucher_first_port=$(check_open_ports $ebesucher_first_port 1)
-      if ! expr "$ebesucher_first_port" : '[[:digit:]]*$' >/dev/null; then
-         echo -e "${RED}Problem assigning port $ebesucher_first_port ..${NOCOLOUR}"
-         echo -e "${RED}Failed to start Ebesucher. Resolve or disable Ebesucher to continue. Exiting..${NOCOLOUR}"
-         exit 1
-      fi
-      eb_port="-p $ebesucher_first_port:3000 "
-    fi
-    check_container_exists ebesucher$UNIQUE_ID$i
-    if CONTAINER_ID=$(sudo docker run -d --name ebesucher$UNIQUE_ID$i $LOGS_PARAM $DNS_VOLUME $NETWORK_TUN --security-opt seccomp=unconfined -e TZ=Etc/UTC -e CHROME_CLI="https://www.ebesucher.com/surfbar/$EBESUCHER_USERNAME" -e CUSTOM_USER="internetincome" -e PASSWORD="internetincome" --mount type=bind,source=$PWD/$chrome_data_folder/data$i/$chrome_profile_data,target=/config --shm-size="1gb" $eb_port lscr.io/linuxserver/chromium:latest); then
-      echo -e "${GREEN}Container ebesucher$UNIQUE_ID$i started successfully.${NOCOLOUR}"
-      echo "ebesucher$UNIQUE_ID$i" | tee -a $chrome_containers_file
-      echo "http://127.0.0.1:$ebesucher_first_port" |tee -a $ebesucher_file
-      ebesucher_first_port=`expr $ebesucher_first_port + 1`
-    else
-      echo -e "${RED}Failed to start container for Ebesucher. Exiting..${NOCOLOUR}"
-      exit 1
-    fi
-  else
-    if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
-      echo -e "${RED}Ebesucher username for chrome is not configured. Ignoring Ebesucher..${NOCOLOUR}"
-    fi
-  fi
-
-  # Starting Ebesucher container
-  if [[ $EBESUCHER_USERNAME && "$EBESUCHER_USE_CHROME" != true ]]; then
-    if [ "$docker_in_docker_detected" = true ]; then
-      echo -e "${RED}Adnade and Ebesucher are not supported now in Docker-in-Docker. Please use custom chrome or custom firefox in test branch and login manually. Exiting..${NOCOLOUR}";
-      exit 1
-    fi
-    echo -e "${YELLOW}Starting Ebesucher container..${NOCOLOUR}"
-    echo -e "${GREEN}Copy the following node url and paste in your browser if required..${NOCOLOUR}"
-    echo -e "${GREEN}You will also find the urls in the file $ebesucher_file in the same folder${NOCOLOUR}"
-    if [ "$container_pulled" = false ]; then
-      sudo docker pull jlesage/firefox
-
-      # Exit, if firefox profile zip file is missing
-      if [ ! -f "$PWD/$firefox_profile_zipfile" ];then
-        echo -e "${RED}Firefox profile file does not exist. Exiting..${NOCOLOUR}"
-        exit 1
-      fi
-
-      # Unzip the file
-      unzip -o $firefox_profile_zipfile
-
-      # Exit, if firefox profile data is missing
-      if [ ! -d "$PWD/$firefox_profile_data" ];then
-        echo -e "${RED}Firefox Data folder does not exist. Exiting..${NOCOLOUR}"
-        exit 1
-      fi
-      
-      check_container_exists dind$UNIQUE_ID$i
-      if CONTAINER_ID=$(sudo docker run -d --name dind$UNIQUE_ID$i $LOGS_PARAM $DNS_VOLUME --restart=always --mount type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock --mount type=bind,source=$(which docker),target=/usr/bin/docker --mount type=bind,source=$PWD,target=/firefox --network none docker:cli /bin/sh -c 'cd /firefox && chmod +x /firefox/restart.sh && while true; do sleep 3600; /firefox/restart.sh --restartFirefox; done'); then
-        echo -e "${GREEN}Container dind$UNIQUE_ID$i started successfully.${NOCOLOUR}"
-      else
-        echo -e "${RED}Failed to start container for ebesucher firefox restart. Exiting..${NOCOLOUR}"
-        exit 1
-      fi
-    fi
-
-    # Create folder and copy files
-    mkdir -p $PWD/$firefox_data_folder/data$i
-    sudo chmod -R 777 $PWD/$firefox_profile_data
-    cp -r $PWD/$firefox_profile_data/* $PWD/$firefox_data_folder/data$i/
-    sudo chmod -R 777 $PWD/$firefox_data_folder/data$i
-    if [[ ! $proxy ]]; then
-      ebesucher_first_port=$(check_open_ports $ebesucher_first_port 1)
-      if ! expr "$ebesucher_first_port" : '[[:digit:]]*$' >/dev/null; then
-         echo -e "${RED}Problem assigning port $ebesucher_first_port ..${NOCOLOUR}"
-         echo -e "${RED}Failed to start Ebesucher. Resolve or disable Ebesucher to continue. Exiting..${NOCOLOUR}"
-         exit 1
-      fi
-      eb_port="-p $ebesucher_first_port:5800"
-    fi
-    check_container_exists ebesucher$UNIQUE_ID$i
-    if CONTAINER_ID=$(sudo docker run -d --name ebesucher$UNIQUE_ID$i $NETWORK_TUN $LOGS_PARAM $DNS_VOLUME --restart=always -e FF_OPEN_URL="https://www.ebesucher.com/surfbar/$EBESUCHER_USERNAME" -e VNC_LISTENING_PORT=-1 -e VNC_PASSWORD="internetincome" --mount type=bind,source=$PWD/$firefox_data_folder/data$i,target=/config $eb_port jlesage/firefox); then
-      echo -e "${GREEN}Container ebesucher$UNIQUE_ID$i started successfully.${NOCOLOUR}"
-      echo "ebesucher$UNIQUE_ID$i" | tee -a $firefox_containers_file
-      echo "http://127.0.0.1:$ebesucher_first_port" |tee -a $ebesucher_file
-      ebesucher_first_port=`expr $ebesucher_first_port + 1`
-    else
-      echo -e "${RED}Failed to start container for Ebesucher. Exiting..${NOCOLOUR}"
-      exit 1
-    fi
-  else
-    if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
-      echo -e "${RED}Ebesucher username is not configured. Ignoring Ebesucher..${NOCOLOUR}"
-    fi
-  fi
-
-  # Starting Adnade container
-  if [[ $ADNADE_USERNAME ]]; then
-    if [ "$docker_in_docker_detected" = true ]; then
-      echo -e "${RED}Adnade and Ebesucher are not supported now in Docker-in-Docker. Please use custom chrome or custom firefox in test branch and login manually. Exiting..${NOCOLOUR}";
-      exit 1
-    fi
-    echo -e "${YELLOW}Starting Adnade container..${NOCOLOUR}"
-    echo -e "${GREEN}Copy the following node url and paste in your browser if required..${NOCOLOUR}"
-    echo -e "${GREEN}You will also find the urls in the file $adnade_file in the same folder${NOCOLOUR}"
-    if [ "$container_pulled" = false ]; then
-      sudo docker pull jlesage/firefox
-
-      # Exit, if firefox profile zip file is missing
-      if [ ! -f "$PWD/$firefox_profile_zipfile" ];then
-        echo -e "${RED}Firefox profile file does not exist. Exiting..${NOCOLOUR}"
-        exit 1
-      fi
-
-      # Unzip the file
-      unzip -o $firefox_profile_zipfile
-
-      # Exit, if firefox profile data is missing
-      if [ ! -d "$PWD/$firefox_profile_data" ];then
-        echo -e "${RED}Firefox profile Data folder does not exist. Exiting..${NOCOLOUR}"
-        exit 1
-      fi
-      check_container_exists adnadedind$UNIQUE_ID$i
-      if CONTAINER_ID=$(sudo docker run -d --name adnadedind$UNIQUE_ID$i $LOGS_PARAM $DNS_VOLUME --restart=always --mount type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock --mount type=bind,source=$(which docker),target=/usr/bin/docker --mount type=bind,source=$PWD,target=/firefox --network none docker:cli /bin/sh -c 'cd /firefox && chmod +x /firefox/restart.sh && while true; do sleep 7200; /firefox/restart.sh --restartAdnade; done'); then
-        echo -e "${GREEN}Container adnadedind$UNIQUE_ID$i started successfully.${NOCOLOUR}"
-      else
-        echo -e "${RED}Failed to start container for adnade firefox restart. Exiting..${NOCOLOUR}"
-        exit 1
-      fi
-    fi
-
-    # Create folder and copy files
-    mkdir -p $PWD/$adnade_data_folder/data$i
-    sudo chmod -R 777 $PWD/$firefox_profile_data
-    cp -r $PWD/$firefox_profile_data/* $PWD/$adnade_data_folder/data$i/
-    sudo chmod -R 777 $PWD/$adnade_data_folder/data$i
-    if [[ ! $proxy ]]; then
-      adnade_first_port=$(check_open_ports $adnade_first_port 1)
-      if ! expr "$adnade_first_port" : '[[:digit:]]*$' >/dev/null; then
-         echo -e "${RED}Problem assigning port $adnade_first_port ..${NOCOLOUR}"
-         echo -e "${RED}Failed to start Adnade. Resolve or disable Adnade to continue. Exiting..${NOCOLOUR}"
-         exit 1
-      fi
-      ad_port="-p $adnade_first_port:5900"
-    fi
-    check_container_exists adnade$UNIQUE_ID$i
-    if CONTAINER_ID=$(sudo docker run -d --name adnade$UNIQUE_ID$i $NETWORK_TUN $LOGS_PARAM $DNS_VOLUME --restart=always -e FF_OPEN_URL="https://adnade.net/view.php?user=$ADNADE_USERNAME&multi=4" -e VNC_LISTENING_PORT=-1 -e WEB_LISTENING_PORT=5900 -e VNC_PASSWORD="internetincome" --mount type=bind,source=$PWD/$adnade_data_folder/data$i,target=/config $ad_port jlesage/firefox); then
-      echo -e "${GREEN}Container adnade$UNIQUE_ID$i started successfully.${NOCOLOUR}"
-      echo "adnade$UNIQUE_ID$i" | tee -a $adnade_containers_file
-      echo "http://127.0.0.1:$adnade_first_port" |tee -a $adnade_file
-      adnade_first_port=`expr $adnade_first_port + 1`
-    else
-      echo -e "${RED}Failed to start container for Adnade. Exiting..${NOCOLOUR}"
-      exit 1
-    fi
-  else
-    if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
-      echo -e "${RED}Adnade username is not configured. Ignoring Adnade..${NOCOLOUR}"
     fi
   fi
 
@@ -872,30 +639,6 @@ start_containers() {
   else
     if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
       echo -e "${RED}PacketShare Email or Password is not configured. Ignoring PacketShare..${NOCOLOUR}"
-    fi
-  fi
-
-  # Starting Depin Chrome Extensions container
-  if [[ $GRASS_EMAIL && $GRASS_PASSWORD ]] || [[ $GRADIENT_EMAIL && $GRADIENT_PASSWORD ]]; then
-    if [ "$container_pulled" = false ]; then
-      sudo docker pull carbon2029/dockweb
-    fi
-    if [[ $GRASS_EMAIL && $GRASS_PASSWORD ]]; then
-      grass_env="-e GRASS_USER=$GRASS_EMAIL -e GRASS_PASS=$GRASS_PASSWORD"
-    fi
-    if [[ $GRADIENT_EMAIL && $GRADIENT_PASSWORD ]]; then
-      gradient_env="-e GRADIENT_EMAIL=$GRADIENT_EMAIL -e GRADIENT_PASS=$GRADIENT_PASSWORD"
-    fi
-    check_container_exists depinext$UNIQUE_ID$i
-    if CONTAINER_ID=$(sudo docker run -d --name depinext$UNIQUE_ID$i --restart=always $LOGS_PARAM $DNS_VOLUME $NETWORK_TUN $grass_env $gradient_env carbon2029/dockweb); then
-      echo -e "${GREEN}Container depinext$UNIQUE_ID$i started successfully.${NOCOLOUR}"
-    else
-      echo -e "${RED}Failed to start container for Depin Extensions. Exiting..${NOCOLOUR}"
-      exit 1
-    fi
-  else
-    if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
-      echo -e "${RED}Depin Extensions are not configured. Ignoring Depin Extensions..${NOCOLOUR}"
     fi
   fi
 

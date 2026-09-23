@@ -1,0 +1,25 @@
+blank_issues_enabled: true
+
+contact_links:
+  - name: Internet Income GitHub FAQ
+    url: https://github.com/engageub/InternetIncome/wiki/Frequently-Asked-Questions
+    about: Please see the FAQ before raising an issue
+  - name: Internet Income GitHub Discussions
+    url: https://github.com/engageub/InternetIncome/discussions
+    about: Ask questions and get help on GitHub Discussions 
+  - name: Formatting proxies for Internet Income
+    url: https://github.com/engageub/InternetIncome/wiki/Formatting-proxies-to-user:password@ip:port
+    about: Commands to format different types of proxy formats
+  - name: Hosts, Proxy and VPN Providers
+    url: https://github.com/engageub/InternetIncome/wiki/Proxies-and-Hosting-Providers
+    about: List of Providers
+  - name: Wiki
+    url: https://github.com/engageub/InternetIncome/wiki
+    about: Official Wiki Page of Internet Income
+  - name: Known Issues
+    url: https://github.com/engageub/InternetIncome/wiki/Known-Issues
+    about: List of currently identified issues
+  - name: Steps to debug if the application is not running
+    url: https://github.com/engageub/InternetIncome/wiki/Steps-to-Debug-if-the-Application-is-Not-Running
+    about: Debugging Steps for Application Issues
+

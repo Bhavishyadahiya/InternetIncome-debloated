@@ -30,8 +30,6 @@ File Internet Crime Complaints World Wide here: https://www.ic3.gov/
 | [PacketStream](https://t.co/FtklOxS7QN)  | :heavy_check_mark:	  | :x: |No limit|1| Paypal |
 | [Honeygain](https://t.co/Xo1FwoUJx1) | :heavy_check_mark:	  | :x: |10|1| Crypto, Paypal |
 | [IPRoyal](https://t.co/7hZUclQbCd)  | :heavy_check_mark:	  | :x: |No limit|1|Crypto, Paypal|
-| [Ebesucher](https://www.ebesucher.com/?ref=engageub)  | :heavy_check_mark:	  | :x: |No limit|1| Paypal|
-| [Grass](https://t.co/hpl30lW4cP) | :heavy_check_mark:	  | :x: |No limit|1| Crypto |
 | [Uprock](https://t.co/xwUf7kY9U0) | :heavy_check_mark:	  | :x: |No limit|1| Crypto |
 | [PassiveApp](https://passiveapp.com/i/KWc0pl)  | :heavy_check_mark: | :x: |No limit|1| Crypto, Paypal|
 | [Bytebenefit](https://bytebenefit.io/invited?ref=nD8Rtx) | :heavy_check_mark: | :x: |No limit|1| Paypal, Stripe|
@@ -41,7 +39,6 @@ File Internet Crime Complaints World Wide here: https://www.ic3.gov/
 | [URnetwork](https://ur.io/c?bonus=YSC0T7) (Use refer code `YSC0T7` in settings for bonus) | :heavy_check_mark:	  | :heavy_check_mark: |No limit|1| Crypto |
 | [Titan Network IP Lease](https://edge.titannet.info/signup?inviteCode=ESTWVWQ2) | :heavy_check_mark:	  | :heavy_check_mark: |No limit|1| Crypto/Rewards |
 | [Titan Network TNT3](https://test1.titannet.io/intiveRegister?code=ILOgrq) | :heavy_check_mark:	  | :heavy_check_mark: |No limit|1| Rewards |
-| [Adnade](https://t.co/KthcbzPa08)  | :heavy_check_mark:	  | :heavy_check_mark: |No limit|1|Crypto, Paypal| 
 | [EarnFM](https://t.co/SX6ggtooDW)  | :heavy_check_mark:	  | :heavy_check_mark: |No limit|1| Crypto, Paypal, Giftcard|
 | [Peer2Profit](https://t.me/peer2profit_app_bot?start=163956712261b9cf129932a)  | :heavy_check_mark:	  | :heavy_check_mark:	 | No limit|No limit| Crypto|
 | [ProxyBase](https://peer.proxybase.org/dashboard/signup?referral=t5QAXPQ8Q8)  | :heavy_check_mark:	  | :heavy_check_mark: |No limit|1| Crypto|
@@ -58,10 +55,6 @@ File Internet Crime Complaints World Wide here: https://www.ic3.gov/
 * No Limit indicates that the website has not mentioned any specifics and multiple proxies were working. Try to use 1 device per IP.
 * To convert crypto to other wallets or currencies, you may use [BestChange](https://www.bestchange.com/?p=1252652).
 * The comparison mentioned above was updated on 25-04-2024 and may be subject to change later.
-
-### <ins>[Click here to view Browser Extension Based Apps](https://github.com/engageub/InternetIncome/wiki/Browser-Extension-Based-Apps)</ins> 
-
-
 
 ## :house_with_garden:	Prerequisites 	
 You can just run the following commands to install or update docker.
