@@ -1,4 +1,45 @@
-# 💻 Internet Income 💸 Multi-Proxy . Multi-IP . Multi-VPN 🏰	
+# 💻 Internet Income 💸 Multi-Proxy . Multi-IP . Multi-VPN 🏰
+
+## Debloated fork
+
+This fork preserves its existing applications and custom `TUNNEL_METHOD` selection. Grass, Gradient, Adnade, Ebesucher, and the browser profile archives remain excluded.
+
+Upstream script updates synchronized on 2026-11-14 against [`engageub/InternetIncome` at `d514430`](https://github.com/engageub/InternetIncome/commit/d514430737d184ef7c3043e5b516d038f71f3989):
+
+* HEV SOCKS5 tunnel updated to `2.20.0` and tun2proxy to `v0.8.7`; tun2socks stays at `v2.7.0`.
+* Repocket now requires only `REPOCKET_API`, not an email address.
+* Existing direct-connection containers using the same image are listed before deletion and require confirmation; refusing or timing out leaves them untouched.
+* `AUTO_UPDATE_CONTAINERS=false` by default. Enabling it starts one scoped Watchtower helper, checking every 24 hours and updating only this run's application containers tagged `latest`, `arm64v8`, or `arm32v7`. Pinned tunnels, helper containers, and EarnApp's `lite` image are excluded.
+* Pawns uses `on-failure:5`; existing restart policies for other apps follow upstream.
+* Quad9 was removed from the generated DNS resolver list, following upstream.
+* `CLOSE_ALL_PORTS=true` disables Mysterium dashboard port publishing and URL output. The default is `false`.
+
+Use your own accounts and only networks/proxies you are authorized to share. App comparison rows below are informational, not a guarantee that every listed app has a container integration.
+
+### IdlePay
+
+The integration uses the [official IdlePay Docker client](https://idlepay.io/docs/docker), `ghcr.io/idlepay/idlepay:latest`, with native amd64, arm64, and arm/v7 support.
+
+1. Verify your email and create an enrollment key in the [Devices dashboard](https://app.idlepay.io/devices).
+2. Set `IDLEPAY_KEY='ipk_...'` in `properties.conf` and start the script.
+3. The device identity is saved in `idlepay-data/data`, mounted at `/etc/idlepay`. Ordinary `--delete` preserves it; `--deleteBackup` removes it. Never share this directory between running devices.
+4. After enrollment, you can revoke the key and clear `IDLEPAY_KEY`; saved `config.json` enables subsequent starts.
+
+With `USE_PROXIES=false`, IdlePay uses direct internet access. With `USE_PROXIES=true`, a **single** IdlePay container reads `proxies.txt` using its native proxy support and disables direct sharing (`IDLEPAY_DIRECT=off`). It does not need a tunnel or dashboard port. **Current launcher limitation:** `--start` still creates a generic tunnel for each proxy before starting IdlePay, even when no tunnel-based apps are enabled; those tunnels add startup time and must succeed. The mounted proxy file replaces IdlePay's saved proxy list on every start, so edit that file rather than using `idlepay proxy add`. Only one connection per public IP earns. IdlePay accepts static HTTP/HTTPS/SOCKS5 proxies, not SOCKS4 or Shadowsocks; unsupported types stop startup with a clear error rather than silently sharing the host IP. Per its [official sharing documentation](https://idlepay.io/docs/sharing#proxy-formats), authenticated HTTP/SOCKS5 proxy addresses and credentials are sent to IdlePay so its servers can connect directly. Use only proxies whose owners permit this. IdlePay also updates its client internally, independently of optional Watchtower image updates.
+
+### Trees.app
+
+[Trees.app](https://www.trees.app/) is included as a **manual-setup app**, not an automated container integration. Its official download page currently offers Windows, macOS, and Android; no supported Linux/Docker/headless client was verified as of 2026-11-14. Install the official client on a supported device and sign in there. There is intentionally no invented `TREES_*` credential setting or third-party image in this script.
+
+### Local validation
+
+From this fork's script directory, run:
+
+```sh
+python -I tests/test_internet_income.py -v
+```
+
+These tests require Bash and mock Docker, sudo, and delays. They check launcher behavior without starting services or sending credentials to app providers; they are not live service-connectivity tests.
 
 <img src="https://i.ibb.co/DKbwPN1/imgonline-com-ua-twotoone-2ck-Xl1-JPvw2t-D1.jpg" width="100%" height="300"/>
 
@@ -26,6 +67,8 @@ File Internet Crime Complaints World Wide here: https://www.ic3.gov/
 
 | App Name | Residential/Home ISP | Datacenter/Hosting/VPS |Limit per Account|Devices per IP| Payment|
 |  :--- |  :---: |  :---: | :---: | :---: | :---: |
+| [IdlePay](https://idlepay.io/) | :heavy_check_mark: | :heavy_check_mark: | No limit | 1 | Crypto |
+| [Trees.app](https://www.trees.app/) (manual setup; no verified Docker client) | :heavy_check_mark: | :x: | No limit | 1 | Paypal |
 | [EarnApp](https://t.co/k0w7jqLfxq)  | :heavy_check_mark:	  | :x: | No limit|1| Paypal, Gift Card |
 | [PacketStream](https://t.co/FtklOxS7QN)  | :heavy_check_mark:	  | :x: |No limit|1| Paypal |
 | [Honeygain](https://t.co/Xo1FwoUJx1) | :heavy_check_mark:	  | :x: |10|1| Crypto, Paypal |
@@ -86,10 +129,12 @@ Download the code and edit the configuration file properties.conf with your acco
 If you don't have GUI access but have terminal access, you can use the following commands to download the code.
 ### Download the code
 ```
-wget -O main.zip https://github.com/engageub/InternetIncome/archive/refs/heads/main.zip
+wget -O main.zip https://github.com/Bhavishyadahiya/InternetIncome-debloated/archive/refs/heads/main.zip
 sudo apt-get install unzip
-unzip -o main.zip
-cd InternetIncome-main
+unzip main.zip -d internetincome-download
+cd internetincome-download/InternetIncome-debloated-main
+# If the archive contains a nested internetIncome-debloated folder, enter it:
+if [ -d internetIncome-debloated ]; then cd internetIncome-debloated; fi
 ```
 * Please edit the "properties.conf" file using the following instructions and save the changes.  
 * If you are using proxies, please set the `USE_PROXIES` value to `true`.
