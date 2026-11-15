@@ -52,12 +52,6 @@ Enable only the projects you want in [`properties.conf`](properties.conf).
 - **URnetwork:** set `UR_NETWORK_PROXY_MODE=true` alongside `UR_AUTH_TOKEN` to aggregate SOCKS5 proxies in one provider container. For initial enrollment, run the script promptly after copying the short-lived auth token.
 - **IdlePay:** automatically uses one native proxy-list container when `USE_PROXIES=true`.
 
-### Trees.app: manual setup only
-
-[Trees.app](https://www.trees.app/) is **not an automated integration** in this script. Its official downloads offer Windows, macOS, and Android; no supported Linux/Docker/headless client was verified as of November 14, 2026.
-
-Install its official client on a supported device. There is no invented Docker image or `TREES_*` login setting here.
-
 ## Removed projects and components
 
 These integrations have been removed from this fork and are no longer launched:
@@ -68,8 +62,8 @@ These integrations have been removed from this fork and are no longer launched:
 | Gradient | Browser-extension launch path | Removed with the shared DePIN extension container. |
 | Adnade | Automated Firefox sessions and reset helper | Avoid browser-based surfing, profile maintenance, and extra access ports. |
 | Ebesucher | Automated Chrome/Firefox sessions and reset helpers | Avoid browser-based surfing, VNC access, and profile maintenance. |
-| Honeygain | Docker client and credential settings | Removed at the maintainer's request. |
-| EarnApp | Docker client, enrollment URLs, and identity/data tracking | Removed at the maintainer's request. |
+| Honeygain | Docker client and credential settings | due to its limit of 10nodes per account its recommended to use seperate HGincome script |
+| EarnApp | Docker client, enrollment URLs, and identity/data tracking | EA requires highly specific ips and most ips are not eligible so it would create junk containers thats why removed |
 | Mysterium | Node client, dashboard ports, and identity/data tracking | Outside this fork's proxy-focused scope; VPN connection management is not supported. |
 
 Also excluded: `chromeprofiledata.zip`, `firefoxprofiledata.zip`, their extracted profiles, and the associated browser tracking/configuration code.
