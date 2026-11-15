@@ -16,7 +16,6 @@ Compared with the original browser-heavy setup, this fork offers:
 - **Native IdlePay proxy sharing:** one persistent IdlePay device handles a whole proxy list instead of creating a separate IdlePay device for every proxy.
 - **Safer replacement prompts:** existing direct-connection containers using the same image are listed before deletion and require confirmation.
 - **Opt-in image updates:** scoped Watchtower updates are disabled by default and target only eligible app containers from the current run.
-- **Regression tests:** launcher behavior is covered by isolated tests without enrolling accounts or running real sharing services.
 
 “Better” here means less browser baggage and clearer operation—not guaranteed higher earnings or a measured performance gain. Resource use still depends on the apps, proxy count, and traffic. Some remaining helpers require access to the Docker socket; this is not a hardened container sandbox.
 
@@ -167,6 +166,17 @@ Per [IdlePay's sharing documentation](https://idlepay.io/docs/sharing#proxy-form
 
 HEV is pinned to `2.20.0`. `USE_DNS_OVER_HTTPS=true` selects tun2proxy's `--dns over-tcp` option; the setting name does not mean every tunnel engine provides HTTPS DNS. Neither Docker nor these settings guarantee anonymity or prevent every network leak.
 
+### Wipter resource limits
+
+Each newly created Wipter container is limited to **120 MiB RAM** and **0.2 CPU cores**. Edit these values near the top of `internetIncome.sh`, not in `properties.conf`:
+
+```sh
+WIPTER_MEMORY_LIMIT="120m"
+WIPTER_CPU_LIMIT="0.2"
+```
+
+The limits apply in both direct and proxy mode, and do not affect other apps or tunnel containers. Docker throttles CPU use above the quota; exceeding the RAM limit can cause an out-of-memory termination. Swap is not separately capped. Existing containers keep their limits until recreated or updated with `docker update`.
+
 ### Optional controls
 
 - `ENABLE_LOGS=true`: enable bounded container logs for troubleshooting. Logs are disabled by default.
@@ -189,14 +199,6 @@ sudo bash internetIncome.sh --deleteBackup
 ```
 
 **This deletes saved authentication and device data.** Providers may require re-enrollment. Do not use it as a routine restart command.
-
-## Validation
-
-```sh
-python -I tests/test_internet_income.py -v
-```
-
-The 40 tests require Python and Bash and mock Docker, sudo, and delays. They cover startup, cleanup, app activation, tunnel choices, deletion prompts, update scoping, and IdlePay identity/proxy behavior. They are not live connectivity or earnings tests.
 
 ## Attribution and license
 

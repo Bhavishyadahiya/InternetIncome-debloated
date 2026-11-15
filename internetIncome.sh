@@ -15,6 +15,10 @@
 # advised of the possibility of such damages.                                    #
 ##################################################################################
 
+# Wipter resource limits (per container; edit these values here)
+WIPTER_MEMORY_LIMIT="120m"
+WIPTER_CPU_LIMIT="0.2"
+
 ######### DO NOT EDIT THE CODE BELOW UNLESS YOU KNOW WHAT YOU ARE DOING  #########
 # Colours
 RED="\033[0;31m"
@@ -647,7 +651,7 @@ RSEOF
       sudo docker pull ghcr.io/techroy23/docker-wipter:latest
     fi
     check_container_exists wipter$UNIQUE_ID$i ghcr.io/techroy23/docker-wipter:latest
-    if CONTAINER_ID=$(sudo docker run -d $WATCH_TOWER_LABEL --name wipter$UNIQUE_ID$i --restart=always $LOGS_PARAM $DNS_VOLUME $NETWORK_TUN -e WIPTER_EMAIL=$WIPTER_EMAIL -e WIPTER_PASSWORD=$WIPTER_PASSWORD ghcr.io/techroy23/docker-wipter:latest); then
+    if CONTAINER_ID=$(sudo docker run -d $WATCH_TOWER_LABEL --name wipter$UNIQUE_ID$i --memory="$WIPTER_MEMORY_LIMIT" --cpus="$WIPTER_CPU_LIMIT" --restart=always $LOGS_PARAM $DNS_VOLUME $NETWORK_TUN -e WIPTER_EMAIL=$WIPTER_EMAIL -e WIPTER_PASSWORD=$WIPTER_PASSWORD ghcr.io/techroy23/docker-wipter:latest); then
       echo -e "${GREEN}Container wipter$UNIQUE_ID$i started successfully.${NOCOLOUR}"
     else
       echo -e "${RED}Failed to start container for Wipter. Exiting..${NOCOLOUR}"
