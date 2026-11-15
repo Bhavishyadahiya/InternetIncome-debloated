@@ -30,8 +30,6 @@ container_names_file="containernames.txt"
 antgain_file="antgain.txt"
 proxyrack_file="proxyrack.txt"
 networks_file="networks.txt"
-mysterium_file="mysterium.txt"
-mysterium_data_folder="mysterium-data"
 idlepay_data_folder="idlepay-data"
 bitping_data_folder="bitping-data"
 urnetwork_data_folder="urnetwork-data"
@@ -45,15 +43,12 @@ ur_proxies_file="ur_proxies.txt"
 ur_data_proxies_file="$urnetwork_data_folder/data/.urnetwork/proxy"
 process_id_file="process.pid"
 required_files=($banner_file $properties_file $restart_file)
-files_to_be_removed=($earn_fm_config_file $dns_resolver_file $container_names_file $networks_file $mysterium_file $ur_proxies_file $ur_data_proxies_file $process_id_file $redsocks_entrypoint_file)
+files_to_be_removed=($earn_fm_config_file $dns_resolver_file $container_names_file $networks_file $ur_proxies_file $ur_data_proxies_file $process_id_file $redsocks_entrypoint_file)
 folders_to_be_removed=()
-back_up_folders=($idlepay_data_folder $titan_data_folder $bitping_data_folder $urnetwork_data_folder $traffmonetizer_data_folder $mysterium_data_folder)
+back_up_folders=($idlepay_data_folder $titan_data_folder $bitping_data_folder $urnetwork_data_folder $traffmonetizer_data_folder)
 back_up_files=($antgain_file $proxyrack_file)
 container_pulled=false
 docker_in_docker_detected=false
-
-# Mysterium first port
-mysterium_first_port=2000
 
 #Unique Id
 UNIQUE_ID=`cat /dev/urandom | LC_ALL=C tr -dc 'a-f0-9' | dd bs=1 count=32 2>/dev/null`
@@ -64,35 +59,6 @@ if [ -f "$banner_file" ]; then
   cat "$banner_file"
   echo -e "${NOCOLOUR}"
 fi
-
-# Check for open ports
-check_open_ports() {
-  local first_port=$1
-  local num_ports=$2
-  port_range=$(seq $first_port $((first_port+num_ports-1)))
-  open_ports=0
-
-  for port in $port_range; do
-    nc -z localhost $port > /dev/null 2>&1
-    if [ $? -eq 0 ]; then
-      open_ports=$((open_ports+1))
-    fi
-  done
-
-  while [ $open_ports -gt 0 ]; do
-    first_port=$((first_port+num_ports))
-    port_range=$(seq $first_port $((first_port+num_ports-1)))
-    open_ports=0
-    for port in $port_range; do
-      nc -z localhost $port > /dev/null 2>&1
-      if [ $? -eq 0 ]; then
-        open_ports=$((open_ports+1))
-      fi
-    done
-  done
-
-  echo $first_port
-}
 
 # Check if a container with name already exists
 # Existing direct-connection containers of the same image are deleted only after confirmation.
@@ -228,8 +194,7 @@ validate_proxies() {
 # IdlePay can route its own proxy list when no other app is enabled.
 idlepay_only_enabled() {
   [[ $IDLEPAY_KEY || -f "$PWD/$idlepay_data_folder/data/config.json" ]] &&
-  ! [[ "$MYSTERIUM" == true ||
-       ( $BITPING_EMAIL && $BITPING_PASSWORD ) ||
+  ! [[ ( $BITPING_EMAIL && $BITPING_PASSWORD ) ||
        $REPOCKET_API || $EARN_FM_API || $TRAFFMONETIZER_TOKEN ||
        $PROXYRACK_API || $PROXYBASE_ACCOUNT_ID ||
        ( $IPROYALS_EMAIL && $IPROYALS_PASSWORD ) ||
@@ -274,17 +239,6 @@ start_containers() {
   if [[ $i && $proxy ]]; then
     NETWORK_TUN="--network=container:tun$UNIQUE_ID$i"
 
-    if [ "$MYSTERIUM" = true ] && [ "$CLOSE_ALL_PORTS" != true ]; then
-      mysterium_first_port=$(check_open_ports $mysterium_first_port 1)
-      if ! expr "$mysterium_first_port" : '[[:digit:]]*$' >/dev/null; then
-         echo -e "${RED}Problem assigning port $mysterium_first_port ..${NOCOLOUR}"
-         echo -e "${RED}Failed to start Mysterium node. Resolve or disable Mysterium to continue. Exiting..${NOCOLOUR}"
-         exit 1
-      fi
-      mysterium_port="-p $mysterium_first_port:4449 "
-    fi
-
-    combined_ports=$mysterium_port
     echo -e "${YELLOW}Starting Proxy container..${NOCOLOUR}"
     # Starting tun containers
     # Resolve which tunnel engine to use based on TUNNEL_METHOD:
@@ -393,7 +347,7 @@ RSEOF
         TUN_LOG_PARAM="warn"
       fi
       check_container_exists tun$UNIQUE_ID$i
-      if CONTAINER_ID=$(sudo docker run --name tun$UNIQUE_ID$i $LOGS_PARAM $TUN_DNS_VOLUME --restart=always -e LOG_LEVEL=$TUN_LOG_PARAM --mount type=bind,source=/dev/net/tun,target=/dev/net/tun --sysctl net.ipv6.conf.all.disable_ipv6=1 --sysctl net.ipv6.conf.default.disable_ipv6=1 --cap-add=NET_ADMIN $combined_ports -e SOCKS5_ADDR="$SOCKS_ADDR" -e SOCKS5_PORT="$SOCKS_PORT" -e SOCKS5_USERNAME="$SOCKS_USER" -e SOCKS5_PASSWORD="$SOCKS_PASS" -e ICMP='reply' -d --no-healthcheck ghcr.io/heiher/hev-socks5-tunnel:2.20.0); then
+      if CONTAINER_ID=$(sudo docker run --name tun$UNIQUE_ID$i $LOGS_PARAM $TUN_DNS_VOLUME --restart=always -e LOG_LEVEL=$TUN_LOG_PARAM --mount type=bind,source=/dev/net/tun,target=/dev/net/tun --sysctl net.ipv6.conf.all.disable_ipv6=1 --sysctl net.ipv6.conf.default.disable_ipv6=1 --cap-add=NET_ADMIN -e SOCKS5_ADDR="$SOCKS_ADDR" -e SOCKS5_PORT="$SOCKS_PORT" -e SOCKS5_USERNAME="$SOCKS_USER" -e SOCKS5_PASSWORD="$SOCKS_PASS" -e ICMP='reply' -d --no-healthcheck ghcr.io/heiher/hev-socks5-tunnel:2.20.0); then
         echo -e "${GREEN}Container tun$UNIQUE_ID$i started successfully.${NOCOLOUR}"
       else
         echo -e "${RED}Failed to start container for proxy. Exiting..${NOCOLOUR}"
@@ -410,7 +364,7 @@ RSEOF
         TUN_LOG_PARAM="trace"
       fi
       check_container_exists tun$UNIQUE_ID$i
-      if CONTAINER_ID=$(sudo docker run --name tun$UNIQUE_ID$i $LOGS_PARAM --restart=always --mount type=bind,source=/dev/net/tun,target=/dev/net/tun --sysctl net.ipv6.conf.all.disable_ipv6=1 --sysctl net.ipv6.conf.default.disable_ipv6=1 --cap-add=NET_ADMIN $combined_ports -d ghcr.io/tun2proxy/tun2proxy:v0.8.7 $DNS_OPTION --proxy $proxy --verbosity $TUN_LOG_PARAM); then
+      if CONTAINER_ID=$(sudo docker run --name tun$UNIQUE_ID$i $LOGS_PARAM --restart=always --mount type=bind,source=/dev/net/tun,target=/dev/net/tun --sysctl net.ipv6.conf.all.disable_ipv6=1 --sysctl net.ipv6.conf.default.disable_ipv6=1 --cap-add=NET_ADMIN -d ghcr.io/tun2proxy/tun2proxy:v0.8.7 $DNS_OPTION --proxy $proxy --verbosity $TUN_LOG_PARAM); then
         echo -e "${GREEN}Container tun$UNIQUE_ID$i started successfully.${NOCOLOUR}"
       else
         echo -e "${RED}Failed to start container for proxy. Exiting..${NOCOLOUR}"
@@ -441,7 +395,7 @@ RSEOF
           ;;
       esac
       check_container_exists tun$UNIQUE_ID$i
-      if CONTAINER_ID=$(sudo docker run --name tun$UNIQUE_ID$i $LOGS_PARAM $TUN_DNS_VOLUME --restart=always --sysctl net.ipv6.conf.all.disable_ipv6=1 --sysctl net.ipv6.conf.default.disable_ipv6=1 --cap-add=NET_ADMIN $combined_ports -e PROXY_TYPE="$RS_TYPE" -e PROXY_HOST="$RS_HOST" -e PROXY_PORT="$RS_PORT" -e PROXY_USER="$RS_USER" -e PROXY_PASS="$RS_PASS" -e ENABLE_LOGS="$ENABLE_LOGS" --mount type=bind,source=$PWD/$redsocks_entrypoint_file,target=/entrypoint.sh,readonly -d alpine:3.20 sh /entrypoint.sh); then
+      if CONTAINER_ID=$(sudo docker run --name tun$UNIQUE_ID$i $LOGS_PARAM $TUN_DNS_VOLUME --restart=always --sysctl net.ipv6.conf.all.disable_ipv6=1 --sysctl net.ipv6.conf.default.disable_ipv6=1 --cap-add=NET_ADMIN -e PROXY_TYPE="$RS_TYPE" -e PROXY_HOST="$RS_HOST" -e PROXY_PORT="$RS_PORT" -e PROXY_USER="$RS_USER" -e PROXY_PASS="$RS_PASS" -e ENABLE_LOGS="$ENABLE_LOGS" --mount type=bind,source=$PWD/$redsocks_entrypoint_file,target=/entrypoint.sh,readonly -d alpine:3.20 sh /entrypoint.sh); then
         echo -e "${GREEN}Container tun$UNIQUE_ID$i started successfully.${NOCOLOUR}"
       else
         echo -e "${RED}Failed to start container for proxy. Exiting..${NOCOLOUR}"
@@ -449,7 +403,7 @@ RSEOF
       fi
     else
       check_container_exists tun$UNIQUE_ID$i
-      if CONTAINER_ID=$(sudo docker run --name tun$UNIQUE_ID$i $LOGS_PARAM $TUN_DNS_VOLUME --restart=always -e LOGLEVEL=$TUN_LOG_PARAM -e PROXY=$proxy --mount type=bind,source=/dev/net/tun,target=/dev/net/tun --sysctl net.ipv6.conf.all.disable_ipv6=1 --sysctl net.ipv6.conf.default.disable_ipv6=1 --cap-add=NET_ADMIN $combined_ports -d xjasonlyu/tun2socks:v2.7.0); then
+      if CONTAINER_ID=$(sudo docker run --name tun$UNIQUE_ID$i $LOGS_PARAM $TUN_DNS_VOLUME --restart=always -e LOGLEVEL=$TUN_LOG_PARAM -e PROXY=$proxy --mount type=bind,source=/dev/net/tun,target=/dev/net/tun --sysctl net.ipv6.conf.all.disable_ipv6=1 --sysctl net.ipv6.conf.default.disable_ipv6=1 --cap-add=NET_ADMIN -d xjasonlyu/tun2socks:v2.7.0); then
         echo -e "${GREEN}Container tun$UNIQUE_ID$i started successfully.${NOCOLOUR}"
       else
         echo -e "${RED}Failed to start container for proxy. Exiting..${NOCOLOUR}"
@@ -457,43 +411,6 @@ RSEOF
       fi
     fi
     sleep 1
-  fi
-
-  # Starting Mysterium container
-  if [[ "$MYSTERIUM" = true ]]; then
-    echo -e "${YELLOW}Starting Mysterium container..${NOCOLOUR}"
-    echo -e "${GREEN}Copy the following node url and paste in your browser${NOCOLOUR}"
-    echo -e "${GREEN}You will also find the urls in the file $mysterium_file in the same folder${NOCOLOUR}"
-    if [ "$container_pulled" = false ]; then
-      sudo docker pull mysteriumnetwork/myst:latest
-    fi
-    if [[ ! $proxy && "$CLOSE_ALL_PORTS" != true ]]; then
-      mysterium_first_port=$(check_open_ports $mysterium_first_port 1)
-      if ! expr "$mysterium_first_port" : '[[:digit:]]*$' >/dev/null; then
-         echo -e "${RED}Problem assigning port $mysterium_first_port ..${NOCOLOUR}"
-         echo -e "${RED}Failed to start Mysterium node. Resolve or disable Mysterium to continue. Exiting..${NOCOLOUR}"
-         exit 1
-      fi
-      myst_port="-p $mysterium_first_port:4449"
-    fi
-    mkdir -p $PWD/$mysterium_data_folder/node$i
-    sudo chmod -R 777 $PWD/$mysterium_data_folder/node$i
-    check_container_exists  myst$UNIQUE_ID$i mysteriumnetwork/myst:latest
-    if CONTAINER_ID=$(sudo docker run -d $WATCH_TOWER_LABEL --name myst$UNIQUE_ID$i --sysctl net.ipv4.conf.all.route_localnet=1 --cap-add=NET_ADMIN $NETWORK_TUN $LOGS_PARAM $DNS_VOLUME --mount type=bind,source=$PWD/$mysterium_data_folder/node$i,target=/var/lib/mysterium-node --restart unless-stopped $myst_port mysteriumnetwork/myst:latest service --agreed-terms-and-conditions); then
-      echo -e "${GREEN}Container myst$UNIQUE_ID$i started successfully.${NOCOLOUR}"
-      if [ "$CLOSE_ALL_PORTS" != true ]; then
-        echo "http://127.0.0.1:$mysterium_first_port" |tee -a $mysterium_file
-        mysterium_first_port=`expr $mysterium_first_port + 1`
-        sudo docker exec myst$UNIQUE_ID$i sh -c "iptables -t nat -A PREROUTING -p tcp --dport 4449 -j DNAT --to-destination 127.0.0.1:4449;iptables -A FORWARD -p tcp -d 127.0.0.1 --dport 4449 -j ACCEPT"
-      fi
-    else
-      echo -e "${RED}Failed to start container for Mysterium. Exiting..${NOCOLOUR}"
-      exit 1
-    fi
-  else
-    if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
-      echo -e "${RED}Mysterium Node is not enabled. Ignoring Mysterium..${NOCOLOUR}"
-    fi
   fi
 
   # Starting BitPing container

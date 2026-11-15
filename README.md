@@ -1,6 +1,6 @@
 # InternetIncome — Debloated
 
-A smaller, headless-focused fork of InternetIncome for running bandwidth-sharing clients in Docker, with direct connections or multiple proxies.
+A smaller, headless-focused fork of InternetIncome for running bandwidth-sharing clients in Docker, with direct connections or multiple proxies. It does not manage VPN connections.
 
 **Keep the useful clients. Drop browser automation and profile archives. Make configuration and maintenance easier to understand.**
 
@@ -22,7 +22,7 @@ Compared with the original browser-heavy setup, this fork offers:
 
 ## Supported projects
 
-The script contains integrations for **18 projects**. “Supported” means a launch path exists; it does not guarantee that a provider still accepts Docker, your account, or your IP type.
+The script contains integrations for **17 projects**. “Supported” means a launch path exists; it does not guarantee that a provider still accepts Docker, your account, or your IP type.
 
 Enable only the projects you want in [`properties.conf`](properties.conf).
 
@@ -32,7 +32,6 @@ Enable only the projects you want in [`properties.conf`](properties.conf).
 | BitPing | `BITPING_EMAIL`, `BITPING_PASSWORD` | Disable account MFA before using this client. |
 | EarnFM | `EARN_FM_API` | Standard client; optional Fleetshare mode below. |
 | IdlePay | `IDLEPAY_KEY` | Enrollment key; saved identity allows later starts without it. |
-| Mysterium | `MYSTERIUM=true` | Dashboard setup and initial payment may be required. |
 | PacketShare | `PACKETSHARE_EMAIL`, `PACKETSHARE_PASSWORD` | Add these settings to the config; the template does not currently include them. |
 | PacketStream | `PACKETSTREAM_CID` | Uses your account's CID. |
 | Pawns / IPRoyal | `IPROYALS_EMAIL`, `IPROYALS_PASSWORD` | Uses the Pawns CLI and `on-failure:5` restart policy. |
@@ -71,10 +70,11 @@ These integrations have been removed from this fork and are no longer launched:
 | Ebesucher | Automated Chrome/Firefox sessions and reset helpers | Avoid browser-based surfing, VNC access, and profile maintenance. |
 | Honeygain | Docker client and credential settings | Removed at the maintainer's request. |
 | EarnApp | Docker client, enrollment URLs, and identity/data tracking | Removed at the maintainer's request. |
+| Mysterium | Node client, dashboard ports, and identity/data tracking | Outside this fork's proxy-focused scope; VPN connection management is not supported. |
 
 Also excluded: `chromeprofiledata.zip`, `firefoxprofiledata.zip`, their extracted profiles, and the associated browser tracking/configuration code.
 
-Removing an integration does not stop old containers or delete previously saved data. Honeygain and EarnApp are no longer started by the script; their legacy files are no longer included in its cleanup lists.
+Removing an integration does not stop old containers or delete previously saved data. Honeygain, EarnApp, and Mysterium are no longer started by the script; their legacy files are no longer included in its cleanup lists.
 
 Other projects advertised in the parent README are not listed as supported unless this script actually implements them.
 
@@ -83,7 +83,7 @@ Other projects advertised in the parent README are not listed as supported unles
 ### 1. Requirements
 
 - Linux with Bash and a working Docker Engine. On Windows, use a Linux environment such as WSL2 with Docker access.
-- `sudo` and common Linux command-line tools. Mysterium port discovery uses `nc`; AntGain uses `uuidgen`.
+- `sudo` and common Linux command-line tools. AntGain uses `uuidgen`.
 - `/dev/net/tun` and Docker `NET_ADMIN` capability for the full tunnel engines. Redsocks does not use the TUN device but still needs network administration privileges.
 - Your own app accounts and networks/proxies whose owners permit bandwidth sharing.
 
@@ -176,7 +176,6 @@ HEV is pinned to `2.20.0`. `USE_DNS_OVER_HTTPS=true` selects tun2proxy's `--dns 
 ### Optional controls
 
 - `ENABLE_LOGS=true`: enable bounded container logs for troubleshooting. Logs are disabled by default.
-- `CLOSE_ALL_PORTS=true`: disable Mysterium dashboard port publishing and URL output. Default: `false`. Published dashboard ports are not explicitly bound to loopback; protect access with your firewall. This switch is not a general firewall.
 - `AUTO_UPDATE_CONTAINERS=true`: start one scoped Watchtower helper that checks every 24 hours. Only this run's app images tagged `latest`, `arm64v8`, or `arm32v7` are eligible. Pinned tunnels and other helper containers are excluded. Default: `false`.
 
 ### Stop and remove containers
@@ -185,7 +184,7 @@ HEV is pinned to `2.20.0`. `USE_DNS_OVER_HTTPS=true` selects tun2proxy's `--dns 
 sudo bash internetIncome.sh --delete
 ```
 
-This removes tracked containers and generated runtime files. Saved identities/authentication for IdlePay, AntGain, ProxyRack, Titan, BitPing, URnetwork, Traffmonetizer, and Mysterium are retained for reuse.
+This removes tracked containers and generated runtime files. Saved identities/authentication for IdlePay, AntGain, ProxyRack, Titan, BitPing, URnetwork, and Traffmonetizer are retained for reuse.
 
 Additional cleanup can list containers outside this project whose parent network container no longer exists; deleting those requires confirmation. Startup also asks before deleting existing direct-connection containers of the same image.
 

@@ -17,7 +17,7 @@ class InternetIncomeTests(unittest.TestCase):
     def run_shell(self, setup="", action="start_containers", matches="", answer="no"):
         source = SCRIPT.read_text(encoding="utf-8")
         variables = source[source.index("# File names"):source.index("#Unique Id")]
-        functions = source[source.index("# Check for open ports"):source.index("# Update and Install Docker")]
+        functions = source[source.index("# Check if a container with name already exists"):source.index("# Update and Install Docker")]
         # Redirect confirmation input to a fixture, not the developer's terminal.
         functions = functions.replace("</dev/tty", "</dev/null")
         harness = r'''
@@ -27,7 +27,6 @@ CPU_ARCH=x86_64
 DEVICE_NAME=testing
 ENABLE_LOGS=false
 AUTO_UPDATE_CONTAINERS=false
-CLOSE_ALL_PORTS=false
 USE_SOCKS5_DNS=false
 USE_DNS_OVER_HTTPS=false
 TUNNEL_METHOD=auto
@@ -54,7 +53,6 @@ sudo() {
   esac
 }
 sleep() { :; }
-check_open_ports() { printf '2000\n'; }
 uuidgen() { printf 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee\n'; }
 '''
         with tempfile.TemporaryDirectory(prefix="internetincome-test-") as directory:
@@ -156,7 +154,6 @@ exec "$@"
 
     def test_idlepay_only_checks_every_other_app_gate(self):
         scenarios = {
-            "mysterium": "MYSTERIUM=true",
             "bitping": "BITPING_EMAIL=user BITPING_PASSWORD=secret",
             "repocket": "REPOCKET_API=sample-key",
             "earnfm": "EARN_FM_API=sample-key",
@@ -183,7 +180,7 @@ exec "$@"
                 self.assertIn("mixed-apps", result.stdout)
 
     def test_idlepay_only_ignores_incomplete_app_credentials(self):
-        for setup in ("BITPING_EMAIL=user", "IPROYALS_PASSWORD=secret", "WIPTER_EMAIL=user", "PACKETSHARE_PASSWORD=secret", "USE_EARN_FM_FLEETSHARE=true", "UR_NETWORK_PROXY_MODE=true", "MYSTERIUM=false", "AUTO_UPDATE_CONTAINERS=true"):
+        for setup in ("BITPING_EMAIL=user", "IPROYALS_PASSWORD=secret", "WIPTER_EMAIL=user", "PACKETSHARE_PASSWORD=secret", "USE_EARN_FM_FLEETSHARE=true", "UR_NETWORK_PROXY_MODE=true", "AUTO_UPDATE_CONTAINERS=true"):
             with self.subTest(setup=setup):
                 result, _, _ = self.run_shell("IDLEPAY_KEY=ipk_sample\n" + setup, "idlepay_only_enabled")
                 self.assert_success(result)
@@ -304,7 +301,6 @@ exec "$@"
             "proxylite": "PROXYLITE_USER_ID=sample-id",
             "urnetwork": "UR_AUTH_TOKEN=sample-token\nmkdir -p urnetwork-data/data/.urnetwork\nprintf 'fixture' > urnetwork-data/data/.urnetwork/jwt",
             "titan": "TITAN_HASH=sample-hash",
-            "myst": "MYSTERIUM=true",
         }
         for name, setup in scenarios.items():
             with self.subTest(app=name):
@@ -390,13 +386,18 @@ exec "$@"
         self.assertIn("Invalid TUNNEL_METHOD", result.stdout)
         self.assertNotIn("--name tun", calls)
 
-    def test_mysterium_close_ports(self):
-        for action in ("start_containers", "start_containers 1 socks5://proxy.test:1080"):
-            with self.subTest(action=action):
-                result, calls, _ = self.run_shell("MYSTERIUM=true\nCLOSE_ALL_PORTS=true", action)
-                self.assert_success(result)
-                self.assertNotIn("-p 2000:4449", calls)
-                self.assertNotIn("http://127.0.0.1:2000", result.stdout)
+    def test_removed_mysterium_settings_are_ignored(self):
+        result, calls, _ = self.run_cli("--start", self.idlepay_proxy_setup("MYSTERIUM=true\nCLOSE_ALL_PORTS=false"))
+        self.assert_success(result)
+        self.assertEqual(calls.count("--name idlepay"), 1)
+        self.assertNotIn("--name tun", calls)
+        self.assertNotIn("--name myst", calls)
+        self.assertNotIn(" -p ", calls)
+        for filename in ("internetIncome.sh", "properties.conf"):
+            with self.subTest(filename=filename):
+                source = (PROJECT / filename).read_text(encoding="utf-8").lower()
+                for removed in ("mysterium", "close_all_ports", "check_open_ports", "combined_ports"):
+                    self.assertNotIn(removed, source)
 
     def test_idlepay_direct_enrollment(self):
         result, calls, tracked = self.run_shell("IDLEPAY_KEY=ipk_sample")
