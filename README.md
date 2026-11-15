@@ -22,7 +22,7 @@ Compared with the original browser-heavy setup, this fork offers:
 
 ## Supported projects
 
-The script contains integrations for **20 projects**. “Supported” means a launch path exists; it does not guarantee that a provider still accepts Docker, your account, or your IP type.
+The script contains integrations for **18 projects**. “Supported” means a launch path exists; it does not guarantee that a provider still accepts Docker, your account, or your IP type.
 
 Enable only the projects you want in [`properties.conf`](properties.conf).
 
@@ -30,9 +30,7 @@ Enable only the projects you want in [`properties.conf`](properties.conf).
 | --- | --- | --- |
 | AntGain | `ANTGAIN_API_KEY` | Saves its device ID in `antgain.txt`. |
 | BitPing | `BITPING_EMAIL`, `BITPING_PASSWORD` | Disable account MFA before using this client. |
-| EarnApp | `EARNAPP=true` | Prints a device-link URL for your dashboard. |
 | EarnFM | `EARN_FM_API` | Standard client; optional Fleetshare mode below. |
-| Honeygain | `HONEYGAIN_EMAIL`, `HONEYGAIN_PASSWORD` | Proxy-mode amd64 image remains pinned to `0.6.6`. |
 | IdlePay | `IDLEPAY_KEY` | Enrollment key; saved identity allows later starts without it. |
 | Mysterium | `MYSTERIUM=true` | Dashboard setup and initial payment may be required. |
 | PacketShare | `PACKETSHARE_EMAIL`, `PACKETSHARE_PASSWORD` | Add these settings to the config; the template does not currently include them. |
@@ -63,7 +61,7 @@ Install its official client on a supported device. There is no invented Docker i
 
 ## Removed projects and components
 
-These integrations were deliberately removed during debloating and have not been restored:
+These integrations have been removed from this fork and are no longer launched:
 
 | Removed project | What was removed | Why |
 | --- | --- | --- |
@@ -71,8 +69,12 @@ These integrations were deliberately removed during debloating and have not been
 | Gradient | Browser-extension launch path | Removed with the shared DePIN extension container. |
 | Adnade | Automated Firefox sessions and reset helper | Avoid browser-based surfing, profile maintenance, and extra access ports. |
 | Ebesucher | Automated Chrome/Firefox sessions and reset helpers | Avoid browser-based surfing, VNC access, and profile maintenance. |
+| Honeygain | Docker client and credential settings | Removed at the maintainer's request. |
+| EarnApp | Docker client, enrollment URLs, and identity/data tracking | Removed at the maintainer's request. |
 
 Also excluded: `chromeprofiledata.zip`, `firefoxprofiledata.zip`, their extracted profiles, and the associated browser tracking/configuration code.
+
+Removing an integration does not stop old containers or delete previously saved data. Honeygain and EarnApp are no longer started by the script; their legacy files are no longer included in its cleanup lists.
 
 Other projects advertised in the parent README are not listed as supported unless this script actually implements them.
 
@@ -154,7 +156,7 @@ The official image is `ghcr.io/idlepay/idlepay:latest`, with native amd64, arm64
 
 Per [IdlePay's sharing documentation](https://idlepay.io/docs/sharing#proxy-formats), authenticated HTTP/SOCKS5 proxy addresses and credentials are sent to IdlePay so its servers can connect directly. Use only proxies whose owners authorize this.
 
-**Known startup limitation:** the launcher still creates generic tunnels for each proxy before starting native IdlePay, even in an IdlePay-only configuration. IdlePay does not use those tunnels, but their startup adds time and must succeed. The same unnecessary tunnel creation affects EarnFM Fleetshare and URnetwork's aggregate proxy mode. Skipping them is not implemented yet.
+**IdlePay-only startup:** when proxies are enabled and IdlePay is the only enabled app, the launcher starts its native proxy-list container once and skips all tunnel containers. This also works with saved enrollment and optional Watchtower. An empty proxy list is rejected. If any other app is enabled, the existing per-proxy tunnel behavior is retained; EarnFM Fleetshare and URnetwork's aggregate proxy mode do not change this rule.
 
 ## Networking and maintenance
 
@@ -175,7 +177,7 @@ HEV is pinned to `2.20.0`. `USE_DNS_OVER_HTTPS=true` selects tun2proxy's `--dns 
 
 - `ENABLE_LOGS=true`: enable bounded container logs for troubleshooting. Logs are disabled by default.
 - `CLOSE_ALL_PORTS=true`: disable Mysterium dashboard port publishing and URL output. Default: `false`. Published dashboard ports are not explicitly bound to loopback; protect access with your firewall. This switch is not a general firewall.
-- `AUTO_UPDATE_CONTAINERS=true`: start one scoped Watchtower helper that checks every 24 hours. Only this run's app images tagged `latest`, `arm64v8`, or `arm32v7` are eligible. Pinned tunnels, other helper containers, and EarnApp's `lite` image are excluded. Default: `false`.
+- `AUTO_UPDATE_CONTAINERS=true`: start one scoped Watchtower helper that checks every 24 hours. Only this run's app images tagged `latest`, `arm64v8`, or `arm32v7` are eligible. Pinned tunnels and other helper containers are excluded. Default: `false`.
 
 ### Stop and remove containers
 
@@ -183,7 +185,7 @@ HEV is pinned to `2.20.0`. `USE_DNS_OVER_HTTPS=true` selects tun2proxy's `--dns 
 sudo bash internetIncome.sh --delete
 ```
 
-This removes tracked containers and generated runtime files. Saved identities/authentication for IdlePay, AntGain, EarnApp, ProxyRack, Titan, BitPing, URnetwork, Traffmonetizer, and Mysterium are retained for reuse. EarnApp's working directory is removed, but its recorded UUID is preserved.
+This removes tracked containers and generated runtime files. Saved identities/authentication for IdlePay, AntGain, ProxyRack, Titan, BitPing, URnetwork, Traffmonetizer, and Mysterium are retained for reuse.
 
 Additional cleanup can list containers outside this project whose parent network container no longer exists; deleting those requires confirmation. Startup also asks before deleting existing direct-connection containers of the same image.
 
@@ -201,7 +203,7 @@ sudo bash internetIncome.sh --deleteBackup
 python -I tests/test_internet_income.py -v
 ```
 
-The 29 tests require Python and Bash and mock Docker, sudo, and delays. They cover startup, cleanup, app activation, tunnel choices, deletion prompts, update scoping, and IdlePay identity/proxy behavior. They are not live connectivity or earnings tests.
+The 40 tests require Python and Bash and mock Docker, sudo, and delays. They cover startup, cleanup, app activation, tunnel choices, deletion prompts, update scoping, and IdlePay identity/proxy behavior. They are not live connectivity or earnings tests.
 
 ## Attribution and license
 

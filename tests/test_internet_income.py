@@ -104,6 +104,116 @@ exec "$@"
     def assert_success(self, result):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def idlepay_proxy_setup(self, extra="", saved_identity=False, proxies=None):
+        def setup(path):
+            with (path / "properties.conf").open("a", encoding="utf-8") as config:
+                config.write("\nUSE_PROXIES=true\n" + extra + "\n")
+                if not saved_identity:
+                    config.write("IDLEPAY_KEY='ipk_sample'\n")
+            if saved_identity:
+                (path / "idlepay-data/data").mkdir(parents=True)
+                (path / "idlepay-data/data/config.json").write_text("{}", encoding="utf-8")
+            (path / "proxies.txt").write_text(
+                proxies if proxies is not None else "# fixture proxies\nsocks5://proxy.test:1080\nsocks5://proxy.test:1081",
+                encoding="utf-8",
+            )
+        return setup
+
+    def test_cli_idlepay_only_skips_tunnels(self):
+        result, calls, files = self.run_cli("--start", self.idlepay_proxy_setup())
+        self.assert_success(result)
+        self.assertEqual(calls.count("--name idlepay"), 1)
+        self.assertNotIn("--name tun", calls)
+        self.assertNotIn("tun2proxy", calls)
+        self.assertNotIn("/dev/net/tun", calls)
+        self.assertNotIn("--cap-add=NET_ADMIN", calls)
+        self.assertNotIn("--network=container:", calls)
+        self.assertIn("IDLEPAY_DIRECT=off", calls)
+        self.assertIn("proxies.txt,target=/proxies.txt,readonly", calls)
+        self.assertNotIn("process.pid", files)
+
+    def test_cli_idlepay_saved_identity_skips_tunnels(self):
+        result, calls, _ = self.run_cli("--start", self.idlepay_proxy_setup(saved_identity=True))
+        self.assert_success(result)
+        self.assertEqual(calls.count("--name idlepay"), 1)
+        self.assertNotIn("--name tun", calls)
+        self.assertIn("IDLEPAY_DIRECT=off", calls)
+
+    def test_cli_idlepay_only_watchtower_still_starts(self):
+        result, calls, _ = self.run_cli("--start", self.idlepay_proxy_setup("AUTO_UPDATE_CONTAINERS=true"))
+        self.assert_success(result)
+        self.assertEqual(calls.count("--name idlepay"), 1)
+        self.assertEqual(calls.count("--name internetincomewatchtower"), 1)
+        self.assertNotIn("--name tun", calls)
+
+    def test_cli_idlepay_and_repocket_keep_tunnels(self):
+        result, calls, _ = self.run_cli("--start", self.idlepay_proxy_setup("REPOCKET_API='sample-key'"))
+        self.assert_success(result)
+        self.assertEqual(calls.count("run --name tun"), 2)
+        self.assertEqual(calls.count("--name repocket"), 2)
+        self.assertEqual(calls.count("--name idlepay"), 1)
+        self.assertIn("--network=container:tun", calls)
+
+    def test_idlepay_only_checks_every_other_app_gate(self):
+        scenarios = {
+            "mysterium": "MYSTERIUM=true",
+            "bitping": "BITPING_EMAIL=user BITPING_PASSWORD=secret",
+            "repocket": "REPOCKET_API=sample-key",
+            "earnfm": "EARN_FM_API=sample-key",
+            "fleetshare": "EARN_FM_API=sample-key USE_EARN_FM_FLEETSHARE=true",
+            "traffmonetizer": "TRAFFMONETIZER_TOKEN=sample-key",
+            "proxyrack": "PROXYRACK_API=sample-key",
+            "proxybase": "PROXYBASE_ACCOUNT_ID=sample-id",
+            "pawns": "IPROYALS_EMAIL=user IPROYALS_PASSWORD=secret",
+            "wipter": "WIPTER_EMAIL=user WIPTER_PASSWORD=secret",
+            "packetshare": "PACKETSHARE_EMAIL=user PACKETSHARE_PASSWORD=secret",
+            "peer2profit": "PEER2PROFIT_EMAIL=user",
+            "antgain": "ANTGAIN_API_KEY=sample-key",
+            "wizardgain": "WIZARD_GAIN_EMAIL=user",
+            "packetstream": "PACKETSTREAM_CID=sample-id",
+            "proxylite": "PROXYLITE_USER_ID=sample-id",
+            "urnetwork": "UR_AUTH_TOKEN=sample-token",
+            "urnetwork_native": "UR_AUTH_TOKEN=sample-token UR_NETWORK_PROXY_MODE=true",
+            "titan": "TITAN_HASH=sample-hash",
+        }
+        for app, setup in scenarios.items():
+            with self.subTest(app=app):
+                result, _, _ = self.run_shell("IDLEPAY_KEY=ipk_sample\n" + setup, 'if idlepay_only_enabled; then printf "idlepay-only\\n"; else printf "mixed-apps\\n"; fi')
+                self.assert_success(result)
+                self.assertIn("mixed-apps", result.stdout)
+
+    def test_idlepay_only_ignores_incomplete_app_credentials(self):
+        for setup in ("BITPING_EMAIL=user", "IPROYALS_PASSWORD=secret", "WIPTER_EMAIL=user", "PACKETSHARE_PASSWORD=secret", "USE_EARN_FM_FLEETSHARE=true", "UR_NETWORK_PROXY_MODE=true", "MYSTERIUM=false", "AUTO_UPDATE_CONTAINERS=true"):
+            with self.subTest(setup=setup):
+                result, _, _ = self.run_shell("IDLEPAY_KEY=ipk_sample\n" + setup, "idlepay_only_enabled")
+                self.assert_success(result)
+
+    def test_idlepay_only_requires_active_idlepay(self):
+        result, _, _ = self.run_shell(action="idlepay_only_enabled")
+        self.assertNotEqual(result.returncode, 0)
+
+    def test_cli_idlepay_only_ignores_tunnel_settings(self):
+        result, calls, _ = self.run_cli("--start", self.idlepay_proxy_setup("TUNNEL_METHOD=invalid\nUSE_SOCKS5_DNS=true\nUSE_DNS_OVER_HTTPS=true"))
+        self.assert_success(result)
+        self.assertNotIn("--name tun", calls)
+        self.assertEqual(calls.count("--name idlepay"), 1)
+
+    def test_cli_idlepay_only_rejects_empty_proxy_list(self):
+        result, calls, files = self.run_cli("--start", self.idlepay_proxy_setup(proxies="# no proxies\n\n"))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("No proxies configured for IdlePay", result.stdout)
+        self.assertNotIn("--name", calls)
+        self.assertNotIn("process.pid", files)
+
+    def test_cli_idlepay_only_validates_proxy_list(self):
+        for proxies, message in (("not-a-proxy\n", "Invalid proxy format"), ("socks4://proxy.test:1080\n", "IdlePay supports only static HTTP/HTTPS/SOCKS5 proxies")):
+            with self.subTest(proxies=proxies):
+                result, calls, _ = self.run_cli("--start", self.idlepay_proxy_setup(proxies=proxies))
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(message, result.stdout)
+                self.assertNotIn("--name idlepay", calls)
+                self.assertNotIn("--name tun", calls)
+
     def test_cli_start_defaults(self):
         result, calls, files = self.run_cli("--start")
         self.assert_success(result)
@@ -143,6 +253,20 @@ exec "$@"
         for archive in ("firefoxprofiledata.zip", "chromeprofiledata.zip"):
             self.assertNotIn(archive, source)
 
+    def test_removed_honeygain_and_earnapp_settings_are_ignored(self):
+        setup = "HONEYGAIN_EMAIL='user'\nHONEYGAIN_PASSWORD='secret'\nEARNAPP=true"
+        result, calls, _ = self.run_cli("--start", self.idlepay_proxy_setup(setup))
+        self.assert_success(result)
+        self.assertEqual(calls.count("--name idlepay"), 1)
+        self.assertNotIn("--name tun", calls)
+        self.assertNotIn("honeygain/", calls)
+        self.assertNotIn("earnapp", calls)
+        for filename in ("internetIncome.sh", "properties.conf"):
+            with self.subTest(filename=filename):
+                source = (PROJECT / filename).read_text(encoding="utf-8").lower()
+                self.assertNotIn("honeygain", source)
+                self.assertNotIn("earnapp", source)
+
     def test_required_files_do_not_include_profiles(self):
         source = SCRIPT.read_text(encoding="utf-8")
         required = re.search(r"^required_files=(.*)$", source, re.MULTILINE).group(1)
@@ -173,7 +297,6 @@ exec "$@"
             "pawns": "IPROYALS_EMAIL=user IPROYALS_PASSWORD=secret",
             "wipter": "WIPTER_EMAIL=user WIPTER_PASSWORD=secret",
             "packetshare": "PACKETSHARE_EMAIL=user PACKETSHARE_PASSWORD=secret",
-            "honey": "HONEYGAIN_EMAIL=user HONEYGAIN_PASSWORD=secret",
             "peer2profit": "PEER2PROFIT_EMAIL=user",
             "antgain": "ANTGAIN_API_KEY=sample-key\ncontainer_pulled=true",
             "wizardgain": "WIZARD_GAIN_EMAIL=user",
@@ -181,7 +304,6 @@ exec "$@"
             "proxylite": "PROXYLITE_USER_ID=sample-id",
             "urnetwork": "UR_AUTH_TOKEN=sample-token\nmkdir -p urnetwork-data/data/.urnetwork\nprintf 'fixture' > urnetwork-data/data/.urnetwork/jwt",
             "titan": "TITAN_HASH=sample-hash",
-            "earnapp": "EARNAPP=true",
             "myst": "MYSTERIUM=true",
         }
         for name, setup in scenarios.items():
@@ -321,9 +443,9 @@ exec "$@"
         self.assertIn("Failed to start container for IdlePay", result.stdout)
 
     def test_watchtower_excludes_pinned_images_and_helpers(self):
-        result, calls, _ = self.run_shell("AUTO_UPDATE_CONTAINERS=true\nEARNAPP=true\nHONEYGAIN_EMAIL=user HONEYGAIN_PASSWORD=secret\nPROXYLITE_USER_ID=sample-id", "start_containers 1 socks5://proxy.test:1080")
+        result, calls, _ = self.run_shell("AUTO_UPDATE_CONTAINERS=true\nPROXYLITE_USER_ID=sample-id", "start_containers 1 socks5://proxy.test:1080")
         self.assert_success(result)
-        for name in ("earnapp", "honey", "dindproxylite", "internetincomewatchtower", "tun"):
+        for name in ("dindproxylite", "internetincomewatchtower", "tun"):
             with self.subTest(container=name):
                 app_run = next(line for line in calls.splitlines() if "--name " + name in line)
                 self.assertNotIn("watchtower.scope", app_run)

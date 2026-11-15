@@ -27,8 +27,6 @@ properties_file="properties.conf"
 banner_file="banner.jpg"
 proxies_file="proxies.txt"
 container_names_file="containernames.txt"
-earnapp_file="earnapp.txt"
-earnapp_data_folder="earnappdata"
 antgain_file="antgain.txt"
 proxyrack_file="proxyrack.txt"
 networks_file="networks.txt"
@@ -48,9 +46,9 @@ ur_data_proxies_file="$urnetwork_data_folder/data/.urnetwork/proxy"
 process_id_file="process.pid"
 required_files=($banner_file $properties_file $restart_file)
 files_to_be_removed=($earn_fm_config_file $dns_resolver_file $container_names_file $networks_file $mysterium_file $ur_proxies_file $ur_data_proxies_file $process_id_file $redsocks_entrypoint_file)
-folders_to_be_removed=($earnapp_data_folder)
+folders_to_be_removed=()
 back_up_folders=($idlepay_data_folder $titan_data_folder $bitping_data_folder $urnetwork_data_folder $traffmonetizer_data_folder $mysterium_data_folder)
-back_up_files=($antgain_file $earnapp_file $proxyrack_file)
+back_up_files=($antgain_file $proxyrack_file)
 container_pulled=false
 docker_in_docker_detected=false
 
@@ -225,6 +223,21 @@ validate_proxies() {
       exit 1
     fi
   done < "$proxies_file"
+}
+
+# IdlePay can route its own proxy list when no other app is enabled.
+idlepay_only_enabled() {
+  [[ $IDLEPAY_KEY || -f "$PWD/$idlepay_data_folder/data/config.json" ]] &&
+  ! [[ "$MYSTERIUM" == true ||
+       ( $BITPING_EMAIL && $BITPING_PASSWORD ) ||
+       $REPOCKET_API || $EARN_FM_API || $TRAFFMONETIZER_TOKEN ||
+       $PROXYRACK_API || $PROXYBASE_ACCOUNT_ID ||
+       ( $IPROYALS_EMAIL && $IPROYALS_PASSWORD ) ||
+       ( $WIPTER_EMAIL && $WIPTER_PASSWORD ) ||
+       ( $PACKETSHARE_EMAIL && $PACKETSHARE_PASSWORD ) ||
+       $PEER2PROFIT_EMAIL || $ANTGAIN_API_KEY || $WIZARD_GAIN_EMAIL ||
+       $PACKETSTREAM_CID || $PROXYLITE_USER_ID || $UR_AUTH_TOKEN ||
+       $TITAN_HASH ]]
 }
 
 # Start all containers
@@ -748,34 +761,6 @@ RSEOF
     fi
   fi
 
-  # Starting Honeygain container
-  if [[ $HONEYGAIN_EMAIL && $HONEYGAIN_PASSWORD ]]; then
-    echo -e "${YELLOW}Starting Honeygain container..${NOCOLOUR}"
-    if [[ $NETWORK_TUN ]]; then
-      if [ "$CPU_ARCH" == "x86_64" ] || [ "$CPU_ARCH" == "amd64" ]; then
-        honeygain_image="honeygain/honeygain:0.6.6"
-      else
-        honeygain_image="honeygain/honeygain:latest"
-      fi
-    else
-      honeygain_image="honeygain/honeygain:latest"
-    fi
-    if [ "$container_pulled" = false ]; then
-      sudo docker pull $honeygain_image
-    fi
-    check_container_exists honey$UNIQUE_ID$i $honeygain_image
-    if CONTAINER_ID=$(sudo docker run -d $WATCH_TOWER_LABEL --name honey$UNIQUE_ID$i $NETWORK_TUN $LOGS_PARAM $DNS_VOLUME --restart=always $honeygain_image -tou-accept -email $HONEYGAIN_EMAIL -pass $HONEYGAIN_PASSWORD -device $DEVICE_NAME$i); then
-      echo -e "${GREEN}Container honey$UNIQUE_ID$i started successfully.${NOCOLOUR}"
-    else
-      echo -e "${RED}Failed to start container for Honeygain. Exiting..${NOCOLOUR}"
-      exit 1
-  fi
-  else
-    if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
-      echo -e "${RED}Honeygain Email or Password is not configured. Ignoring Honeygain..${NOCOLOUR}"
-    fi
-  fi
-
   # Starting Peer2Profit container
   if [[ $PEER2PROFIT_EMAIL ]]; then
     echo -e "${YELLOW}Starting Peer2Profit container..${NOCOLOUR}"
@@ -1029,58 +1014,6 @@ RSEOF
     fi
   fi
 
-  # Starting Earnapp container
-  if [ "$EARNAPP" = true ]; then
-    echo -e "${YELLOW}Starting Earnapp container..${NOCOLOUR}"
-    echo -e "${GREEN}Copy the following node url and paste in your earnapp dashboard${NOCOLOUR}"
-    echo -e "${GREEN}You will also find the urls in the file $earnapp_file in the same folder${NOCOLOUR}"
-    for loop_count in {1..500}; do
-      if [ "$loop_count" -eq 500 ]; then
-        echo -e "${RED}Unique UUID cannot be generated for Earnapp. Exiting..${NOCOLOUR}"
-        exit 1
-      fi
-      RANDOM_ID=`cat /dev/urandom | LC_ALL=C tr -dc 'a-f0-9' | dd bs=1 count=32 2>/dev/null`
-      if [ -f $earnapp_file ]; then
-        if ! grep -qF "$RANDOM_ID" "$earnapp_file"; then
-          break
-        fi
-      else
-        break;
-      fi
-    done
-    date_time=`date "+%D %T"`
-    if [ "$container_pulled" = false ]; then
-      sudo docker pull fazalfarhan01/earnapp:lite
-    fi
-    mkdir -p $PWD/$earnapp_data_folder/data$i
-    sudo chmod -R 777 $PWD/$earnapp_data_folder/data$i
-    if [ -f $earnapp_file ] && uuid=$(sed "${i}q;d" $earnapp_file | grep -o 'https[^[:space:]]*'| sed 's/https:\/\/earnapp.com\/r\///g');then
-      if [[ $uuid ]];then
-        echo $uuid
-      else
-        echo "UUID does not exist, creating UUID"
-        uuid=sdk-node-$RANDOM_ID
-        printf "$date_time https://earnapp.com/r/%s\n" "$uuid" | tee -a $earnapp_file
-      fi
-    else
-      echo "UUID does not exist, creating UUID"
-      uuid=sdk-node-$RANDOM_ID
-      printf "$date_time https://earnapp.com/r/%s\n" "$uuid" | tee -a $earnapp_file
-    fi
-
-    check_container_exists earnapp$UNIQUE_ID$i fazalfarhan01/earnapp:lite
-    if CONTAINER_ID=$(sudo docker run -d $WATCH_TOWER_LABEL --health-interval=24h --name earnapp$UNIQUE_ID$i $LOGS_PARAM $DNS_VOLUME --restart=always $NETWORK_TUN --mount type=bind,source=$PWD/$earnapp_data_folder/data$i,target=/etc/earnapp -e EARNAPP_UUID=$uuid fazalfarhan01/earnapp:lite); then
-      echo -e "${GREEN}Container earnapp$UNIQUE_ID$i started successfully.${NOCOLOUR}"
-    else
-      echo -e "${RED}Failed to start container for Earnapp. Exiting..${NOCOLOUR}"
-      exit 1
-    fi
-  else
-    if [[ "$container_pulled" == false && "$ENABLE_LOGS" == true ]]; then
-      echo -e "${RED}Earnapp is not enabled. Ignoring Earnapp..${NOCOLOUR}"
-    fi
-  fi
-
   # Starting IdlePay container (native proxy list, one persistent device per folder)
   if [[ $IDLEPAY_KEY || -f "$PWD/$idlepay_data_folder/data/config.json" ]]; then
     if [ "$container_pulled" = false ]; then
@@ -1231,13 +1164,23 @@ if [[ "$1" == "--start" ]]; then
     sed -i 's/\r//g' $proxies_file
     sed -i 's/^[ \t]*//;s/[ \t]*$//' $proxies_file
     validate_proxies
-    i=0;
-    while IFS= read -r line || [ -n "$line" ]; do
-      if [[ "$line" =~ ^[^#].* ]]; then
-        i=`expr $i + 1`
-        start_containers "$i" "$line"
+    if idlepay_only_enabled; then
+      if ! grep -qEv '^[[:space:]]*(#|$)' "$proxies_file"; then
+        echo -e "${RED}No proxies configured for IdlePay. Exiting..${NOCOLOUR}"
+        rm "$process_id_file"
+        exit 1
       fi
-    done < $proxies_file
+      echo -e "${GREEN}Only IdlePay is enabled, using its native proxy router without tunnel containers..${NOCOLOUR}"
+      start_containers
+    else
+      i=0;
+      while IFS= read -r line || [ -n "$line" ]; do
+        if [[ "$line" =~ ^[^#].* ]]; then
+          i=`expr $i + 1`
+          start_containers "$i" "$line"
+        fi
+      done < $proxies_file
+    fi
   else
     echo -e "${RED}USE_PROXIES is disabled, using direct internet connection..${NOCOLOUR}"
     start_containers
